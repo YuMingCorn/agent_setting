@@ -1,5 +1,5 @@
 ---
-name: Explore
+name: explore
 description: "Read-only search and research agent. Finds files, greps code, reads local docs and web docs, and returns short structured results. Use for codebase search and documentation lookup instead of doing broad searches in the main session."
 kind: local
 tools:

@@ -133,7 +133,8 @@ If you changed a file directly in `~/.claude`, copy the change back with `backup
 ## Notes
 
 - **Status**: the Claude Code files are tested. The Codex and Gemini CLI files follow the official docs, but they have not been run in Codex or Gemini CLI yet.
-- On Gemini CLI, `run_shell_command` is the documented shell tool name in the hooks docs. The docs do not say what happens with an unknown tool name or an agent name with a capital letter (`Explore`).
+- Gemini CLI agent names allow only lowercase letters, numbers, hyphens and underscores, so `Explore` becomes `explore` in the Gemini files.
+- On Gemini CLI, `run_shell_command` is the documented shell tool name in the hooks docs. The docs do not say what happens with an unknown tool name.
 - The scripts are for Windows (PowerShell 5.1 and `robocopy`). They contain ASCII characters only, because Windows PowerShell 5.1 reads a UTF-8 file without a BOM in the system code page.
 - `.gitattributes` keeps LF line endings, so installed files are byte-identical to the ones in the repo.
 - The to-do list itself (`~/.agents/todo.md`) stays on the local computer and is not in this repo.

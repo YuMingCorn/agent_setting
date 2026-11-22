@@ -133,7 +133,8 @@ powershell -ExecutionPolicy Bypass -File .\deploy.ps1 -All
 ## 注意
 
 - **測試狀態**：Claude Code 的檔案已經測試過。Codex 和 Gemini CLI 的檔案是照官方文件產生的，但還沒有在 Codex 或 Gemini CLI 裡實際執行過。
-- 在 Gemini CLI 上，`run_shell_command` 是 hooks 文件裡寫的 shell 工具名稱。文件沒有說明遇到不認得的工具名稱，或名稱有大寫字母的 agent（`Explore`）時會怎樣。
+- Gemini CLI 的 agent 名稱只能用小寫字母、數字、連字號和底線，所以 `Explore` 在 Gemini 的檔案裡改成 `explore`。
+- 在 Gemini CLI 上，`run_shell_command` 是 hooks 文件裡寫的 shell 工具名稱。文件沒有說明遇到不認得的工具名稱時會怎樣。
 - 腳本只能在 Windows 上執行，需要 PowerShell 5.1 和 `robocopy`。腳本只用英文字元，因為 Windows PowerShell 5.1 會用系統編碼讀取沒有 BOM 的 UTF-8 檔案，中文會變成亂碼。
 - `.gitattributes` 固定使用 LF 換行，所以安裝出來的檔案和 repo 裡的檔案完全相同。
 - 待辦清單本身（`~/.agents/todo.md`）只放在本機，不在這個 repo 裡。

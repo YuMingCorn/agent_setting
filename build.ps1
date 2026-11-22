@@ -78,7 +78,10 @@ foreach ($f in $agentFiles) {
     if ($doc.body.Contains("'''")) { throw "$($f.Name) body contains ''' and cannot go into a TOML literal string" }
 
     # Gemini CLI: Markdown + YAML. No tools line = all tools. No model = inherit.
-    $g = @('---', "name: $name", "description: $(Format-Quoted $desc)", 'kind: local')
+    # Gemini agent names allow only lowercase letters, numbers, hyphens and underscores.
+    $gName = $name.ToLowerInvariant()
+    if ($gName -notmatch '^[a-z0-9_-]+$') { throw "$($f.Name): '$name' is not a valid Gemini agent name" }
+    $g = @('---', "name: $gName","description: $(Format-Quoted $desc)", 'kind: local')
     $tools = Split-List $doc.fm['tools']
     if ($tools.Count -gt 0) {
         $g += 'tools:'
@@ -90,7 +93,7 @@ foreach ($f in $agentFiles) {
         foreach ($m in ($mapped | Select-Object -Unique)) { $g += "  - $m" }
     }
     $g += '---'
-    Write-Text (Join-Path $out "gemini\agents\$name.md") (($g -join "`n") + "`n" + $doc.body)
+    Write-Text (Join-Path $out "gemini\agents\$gName.md") (($g -join "`n") + "`n" + $doc.body)
 
     # Codex: TOML. No model = inherit. Tool limits are not settable; the body says what not to do.
     $c = @(
