@@ -1,17 +1,32 @@
-# Copy settings from this repo into ~/.claude (the reverse of backup.ps1).
-# - Before copying, saves the current ~/.claude copies to %TEMP%\claude-deploy-backup\<timestamp>.
-# - Adds and overwrites files only. Never deletes anything under ~/.claude.
+# Copy settings from this repo into your home folder (the reverse of backup.ps1).
+# - Default: Claude Code only (agents and skills -> ~/.claude).
+# - -All: also the generated files in .\portable\ (run build.ps1 first):
+#     portable\skills         -> ~/.agents/skills   (read by Codex and Gemini CLI)
+#     portable\codex\agents   -> ~/.codex/agents
+#     portable\gemini\agents  -> ~/.gemini/agents
+# - Before copying, saves the current copies to %TEMP%\claude-deploy-backup\<timestamp>.
+# - Adds and overwrites files only. Never deletes anything in the target folders.
 # Usage:
-#   powershell -ExecutionPolicy Bypass -File .\deploy.ps1 -DryRun   # list what would change
-#   powershell -ExecutionPolicy Bypass -File .\deploy.ps1           # copy
+#   powershell -ExecutionPolicy Bypass -File .\deploy.ps1 [-All] -DryRun   # list what would change
+#   powershell -ExecutionPolicy Bypass -File .\deploy.ps1 [-All]           # copy
 # (Kept ASCII-only so Windows PowerShell 5.1 parses it under any code page.)
-param([switch]$DryRun)
+param([switch]$All, [switch]$DryRun)
 
 $ErrorActionPreference = 'Stop'
-$dest = Join-Path $env:USERPROFILE '.claude'
 $repo = $PSScriptRoot
-$folders = @('agents', 'skills')
+$home_ = $env:USERPROFILE
 $exclude = @('synced')   # never touch the auto-synced Anthropic skills
+
+# label, source in repo, target in home
+$targets = @(
+    @('claude-agents', 'agents', '.claude\agents'),
+    @('claude-skills', 'skills', '.claude\skills')
+)
+if ($All) {
+    $targets += ,@('agents-skills', 'portable\skills', '.agents\skills')
+    $targets += ,@('codex-agents', 'portable\codex\agents', '.codex\agents')
+    $targets += ,@('gemini-agents', 'portable\gemini\agents', '.gemini\agents')
+}
 
 function Invoke-Robocopy([string[]]$rcArgs, [string]$what) {
     robocopy @rcArgs
@@ -19,10 +34,14 @@ function Invoke-Robocopy([string[]]$rcArgs, [string]$what) {
     if ($LASTEXITCODE -ge 8) { throw "robocopy failed for $what (exit code $LASTEXITCODE)" }
 }
 
+foreach ($t in $targets) {
+    if (-not (Test-Path (Join-Path $repo $t[1]))) { throw "Missing $($t[1]) in the repo. Run build.ps1 first." }
+}
+
 if ($DryRun) {
-    foreach ($name in $folders) {
-        Write-Host "== $name (dry run: files that would be added or overwritten)"
-        Invoke-Robocopy (@((Join-Path $repo $name), (Join-Path $dest $name), '/E', '/L', '/NJH', '/NJS', '/NDL', '/NP', '/XD') + $exclude) $name
+    foreach ($t in $targets) {
+        Write-Host "== $($t[0]) -> ~\$($t[2]) (dry run: files that would be added or overwritten)"
+        Invoke-Robocopy (@((Join-Path $repo $t[1]), (Join-Path $home_ $t[2]), '/E', '/L', '/NJH', '/NJS', '/NDL', '/NP', '/XD') + $exclude) $t[0]
     }
     $global:LASTEXITCODE = 0
     exit 0
@@ -30,16 +49,16 @@ if ($DryRun) {
 
 $stamp  = Get-Date -Format 'yyyyMMdd-HHmmss'
 $backup = Join-Path $env:TEMP "claude-deploy-backup\$stamp"
-foreach ($name in $folders) {
-    $from = Join-Path $dest $name
+foreach ($t in $targets) {
+    $from = Join-Path $home_ $t[2]
     if (Test-Path $from) {
-        Invoke-Robocopy (@($from, (Join-Path $backup $name), '/E', '/NFL', '/NDL', '/NJH', '/NJS', '/NP', '/XD') + $exclude) "backup of $name" | Out-Null
+        Invoke-Robocopy (@($from, (Join-Path $backup $t[0]), '/E', '/NFL', '/NDL', '/NJH', '/NJS', '/NP', '/XD') + $exclude) "backup of $($t[0])" | Out-Null
     }
 }
 Write-Host "Saved current copies to $backup"
 
-foreach ($name in $folders) {
-    Invoke-Robocopy (@((Join-Path $repo $name), (Join-Path $dest $name), '/E', '/NFL', '/NDL', '/NJH', '/NJS', '/NP', '/XD') + $exclude) $name | Out-Null
-    Write-Host "Deployed $name"
+foreach ($t in $targets) {
+    Invoke-Robocopy (@((Join-Path $repo $t[1]), (Join-Path $home_ $t[2]), '/E', '/NFL', '/NDL', '/NJH', '/NJS', '/NP', '/XD') + $exclude) $t[0] | Out-Null
+    Write-Host "Deployed $($t[0]) -> ~\$($t[2])"
 }
 $global:LASTEXITCODE = 0

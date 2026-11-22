@@ -1,81 +1,87 @@
 ---
 name: todo-review
-description: 讀取全域待辦清單 ~/.claude/todo.md，把目前專案「待決定」的項目一項一項問使用者：有選項的跳出選擇，沒選項的讓使用者輸入怎麼繼續，並把決定寫回清單。session 開啟時的提醒要求時、使用者說「看待辦」「review todo」或 /todo-review 時使用；也用來新增項目（/todo-review add …）。
-argument-hint: "[add <描述> | list]（不帶參數就是逐項 review）"
+description: Reads the shared to-do list ~/.agents/todo.md and asks the user, one item at a time, about the open decisions for the current project. Items with options become a multiple-choice question; items without options ask the user to type how to continue. Writes each decision back to the list. Use when a session-start reminder asks for it, when the user says "review todo", "show my to-dos" or "看待辦", or types /todo-review. Also adds items (/todo-review add ...) and lists them (/todo-review list).
+argument-hint: "[add <description> | list] (no argument = review one by one)"
 ---
 
-# 待辦 review
+# To-do review
 
-清單檔是 `~/.claude/todo.md`。所有專案共用一份，用 `project` 欄區分。清單只放在本機，不進任何 git repo。
+The list file is `~/.agents/todo.md`. One list serves every project and every agent tool; the `project` field says which project an item belongs to. The list stays on the local computer and never goes into a git repo.
 
-同一個資料夾裡的 `todo-reminder.ps1` 是 SessionStart hook。它在 session 開啟時計算目前專案有幾個 `open` 項目，有的話就要求執行這個 skill。它靠 `project:` 和 `status:` 兩個欄位計數，所以這兩個欄位的名稱和寫法不能改。
+`todo-reminder.ps1` in this folder is a SessionStart hook. At session start it counts the `open` items for the current project and, if there are any, asks the agent to run this skill. It counts by the `project:` and `status:` fields, so do not rename or reformat those two fields.
 
-## 清單格式
+Talk to the user in the language they use. Field names in the list stay in English. Field values are in the user's language.
 
-每個項目是一個 H2 區塊。欄位名用英文，內容用中文。範例：
+## List format
+
+Each item is an H2 section. Example:
 
 ```markdown
-## T-007 範例專案的資料要不要現在匯入
+## T-007 Import the example project's data now?
 - project: D:\Projects\example
 - added: 2026-01-15
 - status: open
-- context: 3 份資料已下載到 inbox，等搬進正式資料夾。
+- context: 3 files are downloaded to the inbox and wait to move into the main folder.
 - options:
-  - 現在匯入（建議）
-  - 我自己搬：搬完後告訴你，再匯入
-  - 這批不做了
-- source: ~/.claude/projects/D--Projects-example/memory/import-plan.md
+  - Import now (recommended)
+  - I move them myself: tell me when done, then import
+  - Skip this batch
+- source: ~/notes/example-import-plan.md
 ```
 
-- `project`：專案根目錄的 Windows 路徑。`*` 表示每個專案都要問。
-- `status`：`open`（待決定）、`decided`（已決定，還有事要做）、`done`（做完）、`dropped`（取消）。只問 `open` 的項目。
-- `options`：可省略。有選項的是「有選項的項目」，沒有的是「待輸入的項目」。每個選項寫一行，需要說明時寫成「短標題：說明」。建議的選項放第一個，結尾標「（建議）」。
-- `source`：可省略。這是決定要同步寫回的檔案（例如記憶檔），避免兩邊說法不一致。
-- 決定後加上 `decision:`（決定內容）和 `decided:`（日期）。跳過時加 `skipped:`（日期）。
-- 編號 `T-xxx` 只增不重用。新增時取現有最大號加一。
-- 清單檔裡不要放 code block，因為 `todo-reminder.ps1` 會略過 code block 裡的內容。
+- `project`: the project root folder. `*` means "ask in every project".
+- `status`: `open` (waits for a decision), `decided` (decided, work still to do), `done` (finished) or `dropped` (cancelled). Only `open` items are asked.
+- `options`: optional. An item with options is a "choice item"; an item without options is an "input item". Write one option per line. If an option needs an explanation, write it as "short title: explanation". Put the recommended option first and end it with `(recommended)`. Treat the older marker `（建議）` the same way.
+- `source`: optional. A file that must also receive the decision (for example a notes or memory file), so the two never disagree.
+- After a decision, add `decision:` (what was decided) and `decided:` (the date). When an item is skipped, add `skipped:` (the date).
+- Item numbers `T-xxx` only go up and are never reused. A new item takes the highest existing number plus one.
+- Do not put code blocks in the list file. `todo-reminder.ps1` ignores everything inside code blocks.
 
-## 模式一：review（不帶參數）
+## Asking questions
 
-1. 讀清單。檔案不存在時，建一個只有 `# 待辦清單` 標題的檔案，說一行「目前沒有項目」，然後繼續處理使用者原本的要求。
-2. 篩出符合兩個條件的項目：`status: open`，而且 `project` 是 `*`、等於目前工作目錄，或是目前工作目錄的上層資料夾。比對路徑時不分大小寫，`/` 和 `\` 視為相同，並去掉結尾斜線。沒有符合的項目時，說一行「沒有待決定的項目」，然後繼續處理原本的要求。
-3. 先用短表列出這次要問的項目：編號、標題、類型（有選項／待輸入）。
-4. 用 `AskUserQuestion` 問。一次最多 4 題，照清單順序分批，`multiSelect: false`。
-   - `header` 放項目編號（例如 `T-003`，不超過 12 字）。
-   - 每個選項的 `label` 要簡短（最多約 5 個詞），`description` 寫一句說明。
-   - `question` 要自成一句，包含標題和一句背景，因為使用者可能只看到對話框。
-   - **有選項的項目**：清單的選項行有冒號時，冒號前當 `label`，冒號後當 `description`。沒有冒號時，`label` 取簡短版本，`description` 放完整原文。建議的選項放第一個，去掉「（建議）」，在 `label` 結尾加「(Recommended)」。最後一個選項一律是「先跳過」（description：下次開啟再問），所以清單選項最多放 3 個。清單有 4 個以上選項時，放前 3 個，其餘的逐條寫進 `question`，請使用者用 Other 輸入。
-   - **待輸入的項目**：`question` 結尾寫「請選 Other，輸入你要怎麼繼續。」選項固定兩個：「先跳過」（下次開啟再問）和「取消這項」（標為 dropped）。
-   - 不要自己加名為 Other 的選項，工具會自動提供。
-   - 使用者關掉或取消對話框，視同這一批全部「先跳過」。
-5. 每批回答後，**先寫回清單，再做別的事**：
+Use the multiple-choice question tool of your agent tool: `AskUserQuestion` in Claude Code, `ask_user` in Gemini CLI. If no such tool is available, ask the same questions as numbered plain text in the chat, list each option with its letter, and wait for the reply. In a non-interactive run (for example `claude -p`), do not review. Say in one line how many items wait for a decision, then continue with the original task.
 
-   | 回答 | 寫回 |
+## Mode 1: review (no argument)
+
+1. Read the list. If the file does not exist, create it with only the title `# To-do list`, say in one line that there are no items, and continue with the user's original request.
+2. Select the items that meet both conditions: `status: open`, and `project` is `*`, equals the current working folder, or is a parent folder of it. Compare paths without case, treat `/` and `\` as the same, and ignore a trailing slash. If no item matches, say in one line that there is nothing to decide, and continue with the original request.
+3. First show a short table of the items you will ask about: number, title, type (choice or input).
+4. Ask at most 4 questions at a time, in list order, single choice.
+   - The header is the item number (for example `T-003`, at most 12 characters).
+   - Each question must stand on its own: include the title and one sentence of context, because the user may see only the question.
+   - Each option has a short label (at most about 5 words) and a one-sentence description.
+   - **Choice item**: if an option line has a colon, the text before it is the label and the text after it is the description. Without a colon, use a short version as the label and the full text as the description. Put the recommended option first, remove its `(recommended)` or `（建議）` marker, and mark it the way your tool marks a recommendation (in Claude Code, end the label with "(Recommended)"). The last option is always "Skip for now" (description: ask again next session), so use at most 3 options from the list. If the list has 4 or more options, use the first 3 and write the rest in the question, and ask the user to type their choice as a free-text answer.
+   - **Input item**: end the question with "Type how you want to continue." Give two fixed options: "Skip for now" (ask again next session) and "Drop this item" (mark it dropped).
+   - Write these fixed labels in the user's language.
+   - Do not add an option named "Other" yourself. Claude Code adds a free-text answer automatically. If your tool has no free-text answer, tell the user they can reply in the chat instead.
+   - If the user closes or cancels the question, treat every item in that batch as "Skip for now".
+5. After each batch, **write the answers back to the list before you do anything else**:
+
+   | Answer | Write back |
    |---|---|
-   | 選了某個選項，或用 Other 輸入明確的做法 | `status: decided`，`decision:` 寫選擇或原文，`decided:` 寫今天日期 |
-   | 「先跳過」，或任何「下次再問我」的意思 | 保持 `open`，加上或更新 `skipped:`。不能標成 `decided`，因為 `decided` 的項目不會再被問 |
-   | 「取消這項」 | `status: dropped`，`decided:` 寫今天日期 |
-   | Other 的內容是問題或看不懂 | 保持 `open`，在對話裡回答或追問，有結論再寫回 |
+   | An option, or a clear plan typed as free text | `status: decided`, `decision:` with the choice or the user's words, `decided:` with today's date |
+   | "Skip for now", or anything that means "ask me later" | Keep `open` and add or update `skipped:`. Never mark it `decided`, because `decided` items are not asked again |
+   | "Drop this item" | `status: dropped`, `decided:` with today's date |
+   | Free text that is a question or unclear | Keep `open`. Answer or ask back in the chat, and write back once there is a conclusion |
 
-   有 `source:` 的項目，把決定用一句話同步寫進那個檔案。
-6. 全部問完後，用一段話加一個短表回報：哪些已決定、哪些跳過、哪些取消。
-7. 執行決定。只處理**這次 review 剛決定**的項目；以前留下的 `decided` 項目只在回報裡列出，使用者要求才做。
-   - 屬於目前專案、現在就能做的項目，依序去做。需要同意的步驟照使用者的 CLAUDE.md 處理。做完把 `status` 改成 `done`。
-   - 決定內容是「等使用者做某事」或「之後再做」的項目，保持 `decided`，在回報裡說明下一步是誰的事。
-   - 屬於其他專案的項目只記錄，不在這裡做。
-8. 如果使用者的第一則訊息有別的任務，review 結束後接著做那個任務。
-9. 沒有 `AskUserQuestion` 可用時（例如 `claude -p` 非互動模式），不做 review。只用一行說明有幾項待決定，然後繼續原本的任務。
+   For an item with `source:`, also write the decision into that file in one sentence.
+6. When all batches are done, report in one paragraph and a short table: which items are decided, skipped and dropped.
+7. Carry out the decisions. Act only on items **decided in this review**. Items left `decided` by earlier sessions are only listed in the report; act on them only if the user asks.
+   - Items that belong to the current project and can be done now: do them in order. Follow the user's own instructions (for example CLAUDE.md, AGENTS.md or GEMINI.md) for steps that need approval. When done, set `status` to `done`.
+   - Items whose decision is "wait for the user to do something" or "do it later": keep `decided`, and say in the report whose move it is next.
+   - Items that belong to another project: only record them. Do not act on them here.
+8. If the user's first message had another task, do that task after the review.
 
-## 模式二：add（`/todo-review add <描述>`）
+## Mode 2: add (`add <description>`)
 
-1. 從描述和目前的對話整理出標題、一句背景，以及已知的選項。選項只寫使用者或對話裡真的提過的做法，不要自己編。沒有選項就不寫 `options`。
-2. `project` 預設是目前工作目錄。使用者說「全部專案」時才用 `*`。
-3. 寫入清單，回報新項目的編號和內容。
+1. From the description and the current conversation, write a title, one sentence of context, and the known options. Use only options that the user or the conversation actually mentioned. Do not invent options. If there are none, leave out `options`.
+2. `project` is the current working folder by default. Use `*` only if the user says the item is for every project.
+3. Write the item to the list, and report its number and content.
 
-## 模式三：list
+## Mode 3: list
 
-列出目前專案的 `open` 和 `decided` 項目（短表：編號、標題、狀態、決定）。不問問題，不改檔案。
+Show the `open` and `decided` items for the current project in a short table: number, title, status, decision. Ask no questions and change no files.
 
-## 維護
+## Maintenance
 
-清單裡 `done` 和 `dropped` 的項目超過 20 個時，把它們搬到 `~/.claude/todo-archive.md` 結尾，清單只留 `open` 和 `decided`。
+When the list has more than 20 `done` and `dropped` items, move them to the end of `~/.agents/todo-archive.md`. Keep only `open` and `decided` items in the list.

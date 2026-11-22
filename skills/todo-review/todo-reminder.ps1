@@ -1,5 +1,7 @@
-# SessionStart hook: count open items in ~/.claude/todo.md for the current project
-# and ask Claude to run the todo-review skill. Prints nothing when there is nothing to do.
+# SessionStart hook: count open items in ~/.agents/todo.md for the current project and ask the agent
+# to run the todo-review skill. Prints nothing when there is nothing to do.
+# Works with Claude Code, Codex and Gemini CLI: all three read systemMessage and
+# hookSpecificOutput.additionalContext from a SessionStart hook. Runs on Windows PowerShell 5.1 or pwsh.
 # Keep this file ASCII-only (Windows PowerShell 5.1 reads BOM-less .ps1 as ANSI).
 $ErrorActionPreference = 'Stop'
 try {
@@ -15,7 +17,7 @@ try {
     # Only on a fresh start, not after /clear, /compact or resume.
     if ($hookInput -and $hookInput.source -and $hookInput.source -ne 'startup') { exit 0 }
 
-    $todoPath = Join-Path $env:USERPROFILE '.claude\todo.md'
+    $todoPath = [IO.Path]::Combine($HOME, '.agents', 'todo.md')
     if (-not (Test-Path -LiteralPath $todoPath)) { exit 0 }
 
     function ConvertTo-NormPath([string]$p) {
@@ -57,15 +59,12 @@ try {
 
     if ($count -eq 0) { exit 0 }
 
-    $ctx = "[todo-review] There are $count open decision(s) for this project in ~/.claude/todo.md. " +
-           "In your first reply, before anything else (including other startup prompts such as wiki autopilot), " +
-           "invoke the todo-review skill (Skill tool, skill: todo-review) to ask the user about them. " +
+    $ctx = "[todo-review] There are $count open decision(s) for this project in ~/.agents/todo.md. " +
+           "In your first reply, before anything else (including other startup prompts), " +
+           "use the todo-review skill to ask the user about them. " +
            "If the user's first message is a task, do the review first and then the task. " +
            "If the user says to skip the review, skip it for this session."
-    # systemMessage in Traditional Chinese, built from char codes to keep this file ASCII.
-    $zh = { param([int[]]$c) -join ($c | ForEach-Object { [char]$_ }) }
-    $sys = 'todo-review: ' + (& $zh 0x5F85,0x6C7A,0x5B9A) + ' ' + $count + ' ' + (& $zh 0x9805,0xFF0C,0x7B2C,0x4E00,0x6B21,0x56DE,0x8986,0x6642,0x6703,0x5148,0x554F,0x4F60)
-    $sysJson = $sys
+    $sysJson = "todo-review: $count open decision(s) for this project. The agent will ask you about them first."
     $ctxJson = $ctx.Replace('\', '\\').Replace('"', '\"')
     $out = '{"systemMessage":"' + $sysJson + '","hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"' + $ctxJson + '"}}'
     [Console]::Out.Write($out)
