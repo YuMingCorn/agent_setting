@@ -14,6 +14,43 @@
 
 `~/.claude/skills/synced/` 不備份。裡面是 Anthropic 的官方 skill，登入 claude.ai 後會自動同步下來。
 
+## Agents
+
+每個 agent 都是 Claude 用 Agent 工具啟動的 subagent。設計原則是依工作選模型：便宜的機械式工作用 Haiku，需要判斷的搜尋和檢查用 Sonnet，實作用 Opus。
+
+| Agent | 模型 | 工具 | 用途 |
+|---|---|---|---|
+| `Explore` | Haiku | Read、Grep、Glob、WebFetch、WebSearch | 有明確關鍵字或目標的唯讀搜尋：找檔案、搜尋程式碼、查文件。回傳簡短答案和 `path:line` 位置。 |
+| `sonnet-search` | Sonnet | Read、Grep、Glob、WebFetch、WebSearch | 需要判斷的唯讀搜尋：追蹤程式碼或規則在檔案之間的關係，或找沒有明確關鍵字的東西。會分開列出親眼看到的和推論出來的。 |
+| `haiku-audit` | Haiku | Read、Grep、Glob | 用一份簡短明確的清單檢查大量檔案（frontmatter 欄位、命名規則、禁用寫法）。逐條回報違規，不修改任何東西。 |
+| `haiku-worker` | Haiku | 全部 | 結果容易檢查的大量重複工作：改名、擷取欄位、加標籤、簡短摘要。不寫程式。 |
+| `opus-builder` | Opus | 全部 | 計畫決定後，照明確的說明實作。撰寫和修改程式碼與檔案，並逐檔回報改了什麼。 |
+| `sonnet-checker` | Sonnet | Read、Grep、Glob、Bash（不能用 Write 和 Edit） | 工作完成前，對照說明檢查成果。會跑測試、讀差異、試邊界情況，最後回報 `PASS` 或 `FAIL`。 |
+
+## Skills
+
+### `/brain`
+
+```
+/brain <要做的工作，以及怎樣算完成>
+```
+
+讓 Fable（high effort）當大腦來執行大型工作。Fable 負責規劃、把工作拆成幾個部分、向上面的 agent 交代任務，並判斷交回來的成果。它只在划算時才分派工作，例如互不相依的部分、一個 session 做不完的工作，或大量重複的工作。規劃、找根本原因和最後的決定都由 Fable 自己做。宣布完成前，會先讓 `sonnet-checker` 檢查成果。
+
+只有你輸入 `/brain` 時才會執行，Claude 不會自己啟動它。
+
+### `/todo-review`
+
+用一份清單管理所有專案的待決定事項，清單放在 `~/.claude/todo.md`。每個項目屬於一個專案資料夾（`*` 表示所有專案），狀態有 `open`、`decided`、`done`、`dropped` 四種。
+
+| 指令 | 作用 |
+|---|---|
+| `/todo-review` | 一次問幾題，逐項詢問目前專案的 `open` 項目。有選項的項目會跳出選擇，沒選項的項目請你輸入怎麼做。每個回答都會寫回清單，然後執行屬於這個專案、剛決定的工作。 |
+| `/todo-review add <描述>` | 為目前專案新增一個項目。 |
+| `/todo-review list` | 列出目前專案的 `open` 和 `decided` 項目，不修改任何東西。 |
+
+開啟新的 session 時，SessionStart hook `todo-reminder.ps1` 會計算目前資料夾有幾個 `open` 項目。有的話，Claude 會在第一次回覆時先進行 review。
+
 ## 修改流程
 
 1. 在這個 repo 修改檔案，然後 commit。
