@@ -78,6 +78,17 @@ How the generated versions differ:
 
 ## Skills
 
+| Skill | Tools | What it does |
+|---|---|---|
+| `/todo-review` | Claude Code, Codex, Gemini CLI | Asks you about the open decisions in the current project's to-do list. |
+| `/wrap-up` | Claude Code, Codex, Gemini CLI | Ends a session: checks, commits, saves leftovers, and gives a recap. |
+| `/restate` | Claude Code, Codex, Gemini CLI | Restates your goal in its own words and asks questions before any work starts. |
+| `/first-principle` | Claude Code, Codex, Gemini CLI | Reduces a problem to its axioms and rebuilds the solution from them. |
+| `/session-review` | Claude Code only | Reviews your recent sessions and proposes skills, scripts or rules. |
+| `/brain` | Claude Code only | Runs a big job with Fable as the planner and the agents as workers. |
+
+How to call a skill: type `/name` in Claude Code, and `$name` in Codex (for example `$first-principle`). In Gemini CLI, ask for it in plain words, for example "think this through from first principles". In all three tools, the agent may also start a skill on its own when your words match its description.
+
 ### `/todo-review` (Claude Code, Codex, Gemini CLI)
 
 Each project has its own to-do list of open decisions in `~/.agents/todo/`, one file per project (for example `D--Projects-example.md`). The `project:` line at the top of the file is the project root: the top folder of the git repo, or the working folder when it is not in a git repo. The lists are outside every project folder, so they never go into git. All tools share the same lists. The skill reads only the current project's list and never mentions other projects. Each item has a status: `open`, `decided`, `done` or `dropped`.
@@ -138,7 +149,7 @@ Before any work starts, the agent says in its own words what your goal is, what 
 /first-principle [the problem to think through; default: your latest request]
 ```
 
-Solves a problem by first-principles thinking. The agent states the goal without any method in it, and lists every assumption behind the usual solution. It reduces each assumption to its basic facts and marks it as an axiom (a fact that holds no matter what anyone prefers), a convention (true only because people chose it) or an unverified belief. Then it rebuilds the solution from the axioms alone, shows each reasoning step, and compares the result with the usual way, with the risk of each change. It checks facts by reading code, running commands or measuring, not from memory. Claude may also start it when you say "第一原理", "從根本想" or "first principles".
+Solves a problem by first-principles thinking. The agent states the goal without any method in it, and lists every assumption behind the usual solution. It reduces each assumption to its basic facts and marks it as an axiom (a fact that holds no matter what anyone prefers), a convention (true only because people chose it) or an unverified belief. Then it rebuilds the solution from the axioms alone, shows each reasoning step, and compares the result with the usual way, with the risk of each change. It checks facts by reading code, running commands or measuring, not from memory. Claude may also start it when you say "第一原理", "第一性原理", "從根本想", "拆到最基本", "first principles" or "reason from first principles".
 
 ### `/session-review` (Claude Code only)
 

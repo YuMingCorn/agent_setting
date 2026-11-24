@@ -78,6 +78,17 @@ powershell -ExecutionPolicy Bypass -File .\deploy.ps1 -All
 
 ## Skills
 
+| Skill | 工具 | 用途 |
+|---|---|---|
+| `/todo-review` | Claude Code、Codex、Gemini CLI | 問你目前專案待辦清單裡還沒決定的事。 |
+| `/wrap-up` | Claude Code、Codex、Gemini CLI | 結束工作：檢查、commit、記下沒做完的事，最後給一段總結。 |
+| `/restate` | Claude Code、Codex、Gemini CLI | 開始工作前，先用自己的話重述你的目標並提問。 |
+| `/first-principle` | Claude Code、Codex、Gemini CLI | 把問題拆到公理，再從公理重新推演出解法。 |
+| `/session-review` | 只能在 Claude Code 使用 | 回顧你最近的 session，提出可以做成 skill、腳本或規則的建議。 |
+| `/brain` | 只能在 Claude Code 使用 | 用 Fable 規劃大型工作，再交給各個 agent 執行。 |
+
+呼叫方式：在 Claude Code 裡輸入 `/名稱`，在 Codex 裡輸入 `$名稱`（例如 `$first-principle`）。在 Gemini CLI 裡直接用文字要求，例如「用第一原理想這個問題」。三個工具裡，只要你的說法符合 skill 的描述，agent 也可能自動啟動它。
+
 ### `/todo-review`（Claude Code、Codex、Gemini CLI）
 
 每個專案有自己的待決定事項清單，放在 `~/.agents/todo/`，一個專案一個檔案（例如 `D--Projects-example.md`）。檔案開頭的 `project:` 寫專案根目錄，也就是 git repo 的最上層；不在 git 裡時就是當時的資料夾。清單放在所有專案資料夾之外，所以不會進 git。所有工具共用同一份清單。skill 只讀目前專案的清單，不會提到其他專案。每個項目的狀態有 `open`、`decided`、`done`、`dropped` 四種。
@@ -138,7 +149,7 @@ powershell -ExecutionPolicy Bypass -File .\deploy.ps1 -All
 /first-principle [要思考的問題，預設是你最新的要求]
 ```
 
-用第一原理思維解決問題。agent 先寫出不含任何做法的目標，再列出一般解法背後的所有假設。它把每個假設拆到最基本的事實，標成公理（不論誰的偏好都成立的事實）、慣例（只因為大家這樣選才成立）或未驗證的看法。接著只用公理重新推演出解法，列出每一步推理，並和一般做法比較，說明每個改變的風險。它會讀程式碼、執行指令或實際量測來確認事實，不憑記憶。你說「第一原理」、「從根本想」或「first principles」時，Claude 也可能自動啟動它。
+用第一原理思維解決問題。agent 先寫出不含任何做法的目標，再列出一般解法背後的所有假設。它把每個假設拆到最基本的事實，標成公理（不論誰的偏好都成立的事實）、慣例（只因為大家這樣選才成立）或未驗證的看法。接著只用公理重新推演出解法，列出每一步推理，並和一般做法比較，說明每個改變的風險。它會讀程式碼、執行指令或實際量測來確認事實，不憑記憶。你說「第一原理」、「第一性原理」、「從根本想」、「拆到最基本」或「first principles」時，Claude 也可能自動啟動它。
 
 ### `/session-review`（只能在 Claude Code 使用）
 
