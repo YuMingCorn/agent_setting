@@ -11,7 +11,9 @@ My custom subagents and skills. They were written for Claude Code, and the repo 
 | `agents/` | 6 custom subagents in Claude Code format. **Source of truth.** |
 | `skills/brain/` | `/brain` skill. Claude Code only. |
 | `skills/todo-review/` | `/todo-review` skill and its SessionStart hook script `todo-reminder.ps1`. **Source of truth.** |
-| `portable/skills/` | `todo-review` in the open [Agent Skills](https://agentskills.io/specification) format (only `name` and `description` in the frontmatter). Generated. |
+| `skills/wrap-up/` | `/wrap-up` skill. **Source of truth.** |
+| `skills/session-review/` | `/session-review` skill and its script `session_review.py`. Claude Code only. |
+| `portable/skills/` | `todo-review` and `wrap-up` in the open [Agent Skills](https://agentskills.io/specification) format (only `name` and `description` in the frontmatter). Generated. |
 | `portable/codex/agents/` | The 6 agents as Codex TOML files. Generated. |
 | `portable/gemini/agents/` | The 6 agents as Gemini CLI Markdown files. Generated. |
 | `build.ps1` | Generates `portable/` from `agents/` and `skills/`. |
@@ -76,17 +78,19 @@ How the generated versions differ:
 
 ### `/todo-review` (Claude Code, Codex, Gemini CLI)
 
-Keeps one to-do list of open decisions for all projects and all tools in `~/.agents/todo.md`. Each item belongs to a project folder (or `*` for every project) and has a status: `open`, `decided`, `done` or `dropped`.
+Each project has its own to-do list of open decisions in `~/.agents/todo/`, one file per project (for example `D--Projects-example.md`). The `project:` line at the top of the file is the project root: the top folder of the git repo, or the working folder when it is not in a git repo. The lists are outside every project folder, so they never go into git. All tools share the same lists. The skill reads only the current project's list and never mentions other projects. Each item has a status: `open`, `decided`, `done` or `dropped`.
 
 | Command | What it does |
 |---|---|
-| `/todo-review` | Asks you about each `open` item for the current project, a few at a time. Items with options show a choice; items without options ask you to type what to do. Writes each answer back to the list, then does the decided work that belongs to this project. |
+| `/todo-review` | Asks you about each `open` item for the current project, a few at a time. Items with options show a choice; items without options ask you to type what to do. Writes each answer back to the list, then does the work you just decided. |
 | `/todo-review add <description>` | Adds a new item for the current project. |
 | `/todo-review list` | Lists the `open` and `decided` items for the current project, and changes nothing. |
 
 In Codex, call the skill with `$todo-review`. In Gemini CLI, ask for it in plain words, for example "review my to-dos". The skill asks its questions in your language. It uses `AskUserQuestion` in Claude Code and `ask_user` in Gemini CLI, and asks in plain text where no question tool exists.
 
-**Optional session-start reminder.** `todo-reminder.ps1` counts the `open` items for the current folder when a session starts. If there are any, the agent runs the review in its first reply. All three tools read the same hook output (`systemMessage` and `hookSpecificOutput.additionalContext`). The script needs Windows PowerShell 5.1 or PowerShell 7 (`pwsh`). Add it to the tool's hook settings and change the path to where you installed the skill:
+Older versions kept every project in one file, `~/.agents/todo.md`. If that file still exists, the skill moves the current project's items into the new list. It never deletes the old file itself.
+
+**Optional session-start reminder.** `todo-reminder.ps1` counts the `open` items in the current project's list when a session starts. If there are any, the agent runs the review in its first reply. All three tools read the same hook output (`systemMessage` and `hookSpecificOutput.additionalContext`). The script needs Windows PowerShell 5.1 or PowerShell 7 (`pwsh`). Add it to the tool's hook settings and change the path to where you installed the skill:
 
 - Claude Code, in `~/.claude/settings.json`:
   ```json
@@ -102,6 +106,31 @@ In Codex, call the skill with `$todo-review`. In Gemini CLI, ask for it in plain
   ```
 - Codex: a `SessionStart` hook with matcher `startup` in `~/.codex/hooks.json`. See the [Codex hooks docs](https://learn.chatgpt.com/docs/hooks.md).
 - Gemini CLI: a `SessionStart` hook with matcher `startup` in the `hooks` object of `~/.gemini/settings.json`. See the [Gemini CLI hooks docs](https://geminicli.com/docs/hooks/).
+
+### `/wrap-up` (Claude Code, Codex, Gemini CLI)
+
+```
+/wrap-up [push | pr] [notes for the recap]
+```
+
+Ends a work session in this order:
+
+1. If code or config changed and has not been checked, `sonnet-checker` checks it.
+2. Commits the files that this session changed, named one by one (never `git add -A`). Files that look like secrets and unrelated files stay out.
+3. Writes unfinished work and decisions that wait for you to the current project's to-do list (in the `todo-review` format).
+4. Ends with a recap that stands on its own: what was done, the check result, the commit and where it went, the leftover item numbers, and the next step.
+
+By default it commits locally only. It pushes or opens a pull request only when you write `push` or `pr`, or ask for it in the same request. It never force-pushes, merges, deletes a branch or creates a repository. The project's own rules (for example "never push") win over this skill. Claude may also start it when you say "wrap up" or "收工".
+
+### `/session-review` (Claude Code only)
+
+```
+/session-review [days, default 30] [project name filter]
+```
+
+Reviews your recent Claude Code sessions to find three things: what you want to be told, which questions you did not need to be asked, and which repeated requests could become a skill, a script or a rule. `session_review.py` reads the transcripts in `~/.claude/projects/`, extracts your messages, the multiple-choice questions you were asked and your answers, and measures how often you took the recommended option. It writes its output to a temp folder, because the output holds private conversation text. When there are many messages, the skill splits them into parts and has several `sonnet-search` agents read them at once. It ends with proposals and builds nothing until you pick.
+
+Run the script with `uv run --no-project python`. On Windows, a plain `python` may start the Microsoft Store stub. It runs only when you type `/session-review`.
 
 ### `/brain` (Claude Code only)
 
@@ -137,4 +166,4 @@ If you changed a file directly in `~/.claude`, copy the change back with `backup
 - On Gemini CLI, `run_shell_command` is the documented shell tool name in the hooks docs. The docs do not say what happens with an unknown tool name.
 - The scripts are for Windows (PowerShell 5.1 and `robocopy`). They contain ASCII characters only, because Windows PowerShell 5.1 reads a UTF-8 file without a BOM in the system code page.
 - `.gitattributes` keeps LF line endings, so installed files are byte-identical to the ones in the repo.
-- The to-do list itself (`~/.agents/todo.md`) stays on the local computer and is not in this repo.
+- The to-do lists themselves (`~/.agents/todo/`) stay on the local computer and are not in this repo.

@@ -11,7 +11,9 @@
 | `agents/` | 6 個自訂 subagent，Claude Code 格式。**修改來源。** |
 | `skills/brain/` | `/brain` skill。只能在 Claude Code 使用。 |
 | `skills/todo-review/` | `/todo-review` skill 和它的 SessionStart hook 腳本 `todo-reminder.ps1`。**修改來源。** |
-| `portable/skills/` | 開放標準 [Agent Skills](https://agentskills.io/specification) 格式的 `todo-review`，frontmatter 只有 `name` 和 `description`。自動產生。 |
+| `skills/wrap-up/` | `/wrap-up` skill。**修改來源。** |
+| `skills/session-review/` | `/session-review` skill 和它的腳本 `session_review.py`。只能在 Claude Code 使用。 |
+| `portable/skills/` | 開放標準 [Agent Skills](https://agentskills.io/specification) 格式的 `todo-review` 和 `wrap-up`，frontmatter 只有 `name` 和 `description`。自動產生。 |
 | `portable/codex/agents/` | 6 個 agent 的 Codex TOML 檔。自動產生。 |
 | `portable/gemini/agents/` | 6 個 agent 的 Gemini CLI Markdown 檔。自動產生。 |
 | `build.ps1` | 從 `agents/` 和 `skills/` 產生 `portable/`。 |
@@ -76,17 +78,19 @@ powershell -ExecutionPolicy Bypass -File .\deploy.ps1 -All
 
 ### `/todo-review`（Claude Code、Codex、Gemini CLI）
 
-用一份清單管理所有專案、所有工具的待決定事項，清單放在 `~/.agents/todo.md`。每個項目屬於一個專案資料夾（`*` 表示所有專案），狀態有 `open`、`decided`、`done`、`dropped` 四種。
+每個專案有自己的待決定事項清單，放在 `~/.agents/todo/`，一個專案一個檔案（例如 `D--Projects-example.md`）。檔案開頭的 `project:` 寫專案根目錄，也就是 git repo 的最上層；不在 git 裡時就是當時的資料夾。清單放在所有專案資料夾之外，所以不會進 git。所有工具共用同一份清單。skill 只讀目前專案的清單，不會提到其他專案。每個項目的狀態有 `open`、`decided`、`done`、`dropped` 四種。
 
 | 指令 | 作用 |
 |---|---|
-| `/todo-review` | 一次問幾題，逐項詢問目前專案的 `open` 項目。有選項的項目會跳出選擇，沒選項的項目請你輸入怎麼做。每個回答都會寫回清單，然後執行屬於這個專案、剛決定的工作。 |
+| `/todo-review` | 一次問幾題，逐項詢問目前專案的 `open` 項目。有選項的項目會跳出選擇，沒選項的項目請你輸入怎麼做。每個回答都會寫回清單，然後執行剛決定的工作。 |
 | `/todo-review add <描述>` | 為目前專案新增一個項目。 |
 | `/todo-review list` | 列出目前專案的 `open` 和 `decided` 項目，不修改任何東西。 |
 
 在 Codex 裡用 `$todo-review` 呼叫這個 skill。在 Gemini CLI 裡直接用文字要求，例如「看待辦」。這個 skill 會用你的語言提問。它在 Claude Code 用 `AskUserQuestion`，在 Gemini CLI 用 `ask_user`，沒有提問工具時就直接用文字問。
 
-**選用的開啟提醒。** `todo-reminder.ps1` 會在 session 開啟時，計算目前資料夾有幾個 `open` 項目。有的話，agent 會在第一次回覆時先進行 review。三個工具都讀同一種 hook 輸出（`systemMessage` 和 `hookSpecificOutput.additionalContext`）。腳本需要 Windows PowerShell 5.1 或 PowerShell 7（`pwsh`）。把它加到工具的 hook 設定，並把路徑改成你安裝 skill 的位置：
+舊版把所有專案放在同一個 `~/.agents/todo.md`。如果這個檔案還在，skill 會把屬於目前專案的項目搬進新清單，不會刪掉舊檔案本身。
+
+**選用的開啟提醒。** `todo-reminder.ps1` 會在 session 開啟時，計算目前專案的清單有幾個 `open` 項目。有的話，agent 會在第一次回覆時先進行 review。三個工具都讀同一種 hook 輸出（`systemMessage` 和 `hookSpecificOutput.additionalContext`）。腳本需要 Windows PowerShell 5.1 或 PowerShell 7（`pwsh`）。把它加到工具的 hook 設定，並把路徑改成你安裝 skill 的位置：
 
 - Claude Code，在 `~/.claude/settings.json`：
   ```json
@@ -102,6 +106,31 @@ powershell -ExecutionPolicy Bypass -File .\deploy.ps1 -All
   ```
 - Codex：在 `~/.codex/hooks.json` 加一個 matcher 為 `startup` 的 `SessionStart` hook。請參考 [Codex hooks 文件](https://learn.chatgpt.com/docs/hooks.md)。
 - Gemini CLI：在 `~/.gemini/settings.json` 的 `hooks` 物件加一個 matcher 為 `startup` 的 `SessionStart` hook。請參考 [Gemini CLI hooks 文件](https://geminicli.com/docs/hooks/)。
+
+### `/wrap-up`（Claude Code、Codex、Gemini CLI）
+
+```
+/wrap-up [push | pr] [要寫進總結的備註]
+```
+
+結束一個工作 session，依序做這幾件事：
+
+1. 如果程式或設定改過、還沒檢查，先讓 `sonnet-checker` 檢查。
+2. commit 這個 session 改的檔案，一個一個指定，不用 `git add -A`。看起來像密碼的檔案和不相關的檔案不會 commit。
+3. 把沒做完的工作和等你決定的事寫進目前專案的待辦清單（`todo-review` 的格式）。
+4. 最後給一段可以單獨閱讀的總結：做了什麼、檢查結果、commit 和推到哪裡、剩下的待辦編號、下一步。
+
+預設只在本機 commit。只有你寫了 `push` 或 `pr`，或在同一句話裡要求推送，它才會推送或開 PR。它不會 force-push、merge、刪除分支或建立 repo。專案自己的規則（例如「不要 push」）比這個 skill 優先。你說「收工」時，Claude 也可以自己啟動它。
+
+### `/session-review`（只能在 Claude Code 使用）
+
+```
+/session-review [天數，預設 30] [專案名稱篩選]
+```
+
+複盤最近的 Claude Code session，找出三件事：你想要被告訴什麼、哪些問題其實不用問你、哪些重複的要求可以做成 skill、腳本或規則。`session_review.py` 會讀 `~/.claude/projects/` 裡的對話紀錄，抽出你打的訊息、問過你的選擇題和你的回答，並算出你選「建議」選項的比例。輸出寫到暫存資料夾，因為裡面有私人對話內容。訊息太多時，skill 會把它分成幾份，交給幾個 `sonnet-search` agent 同時讀。最後它只提出建議，等你選了才會動手。
+
+執行腳本要用 `uv run --no-project python`。在 Windows 上，直接打 `python` 可能會叫到 Microsoft Store 的空殼程式。只有你輸入 `/session-review` 時才會執行。
 
 ### `/brain`（只能在 Claude Code 使用）
 
@@ -137,4 +166,4 @@ powershell -ExecutionPolicy Bypass -File .\deploy.ps1 -All
 - 在 Gemini CLI 上，`run_shell_command` 是 hooks 文件裡寫的 shell 工具名稱。文件沒有說明遇到不認得的工具名稱時會怎樣。
 - 腳本只能在 Windows 上執行，需要 PowerShell 5.1 和 `robocopy`。腳本只用英文字元，因為 Windows PowerShell 5.1 會用系統編碼讀取沒有 BOM 的 UTF-8 檔案，中文會變成亂碼。
 - `.gitattributes` 固定使用 LF 換行，所以安裝出來的檔案和 repo 裡的檔案完全相同。
-- 待辦清單本身（`~/.agents/todo.md`）只放在本機，不在這個 repo 裡。
+- 待辦清單本身（`~/.agents/todo/`）只放在本機，不在這個 repo 裡。

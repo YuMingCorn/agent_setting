@@ -11,7 +11,8 @@ $out  = Join-Path $repo 'portable'
 
 # Skills that work outside Claude Code. brain stays Claude-only: it depends on
 # Claude models, Claude-only frontmatter and the Claude agent team.
-$portableSkills = @('todo-review')
+# session-review stays Claude-only: it reads Claude Code session transcripts.
+$portableSkills = @('todo-review', 'wrap-up')
 
 # Claude Code tool name -> Gemini CLI tool names
 $geminiTools = @{
