@@ -12,8 +12,9 @@
 | `skills/brain/` | `/brain` skill。只能在 Claude Code 使用。 |
 | `skills/todo-review/` | `/todo-review` skill 和它的 SessionStart hook 腳本 `todo-reminder.ps1`。**修改來源。** |
 | `skills/wrap-up/` | `/wrap-up` skill。**修改來源。** |
+| `skills/restate/` | `/restate` skill。**修改來源。** |
 | `skills/session-review/` | `/session-review` skill 和它的腳本 `session_review.py`。只能在 Claude Code 使用。 |
-| `portable/skills/` | 開放標準 [Agent Skills](https://agentskills.io/specification) 格式的 `todo-review` 和 `wrap-up`，frontmatter 只有 `name` 和 `description`。自動產生。 |
+| `portable/skills/` | 開放標準 [Agent Skills](https://agentskills.io/specification) 格式的 `todo-review`、`wrap-up` 和 `restate`，frontmatter 只有 `name` 和 `description`。自動產生。 |
 | `portable/codex/agents/` | 6 個 agent 的 Codex TOML 檔。自動產生。 |
 | `portable/gemini/agents/` | 6 個 agent 的 Gemini CLI Markdown 檔。自動產生。 |
 | `build.ps1` | 從 `agents/` 和 `skills/` 產生 `portable/`。 |
@@ -121,6 +122,14 @@ powershell -ExecutionPolicy Bypass -File .\deploy.ps1 -All
 4. 最後給一段可以單獨閱讀的總結：做了什麼、檢查結果、commit 和推到哪裡、剩下的待辦編號、下一步。
 
 預設只在本機 commit。只有你寫了 `push` 或 `pr`，或在同一句話裡要求推送，它才會推送或開 PR。它不會 force-push、merge、刪除分支或建立 repo。專案自己的規則（例如「不要 push」）比這個 skill 優先。你說「收工」時，Claude 也可以自己啟動它。
+
+### `/restate`（Claude Code、Codex、Gemini CLI）
+
+```
+/restate [要重述的任務，預設是你最新的要求]
+```
+
+在開始工作之前，agent 先用自己的話說出你的目標、你想解決的問題，以及它做了哪些猜測。最後列出編號的問題，最重要的排第一，每題都附上預設答案，然後等你回覆。這一輪它不改任何檔案，只會讀檔案和執行唯讀指令來了解你的要求。你回答之後，它就開始做事。你說「先別動手」、「用你自己的話說」或「restate in your own words」時，Claude 也可能自動啟動它。
 
 ### `/session-review`（只能在 Claude Code 使用）
 

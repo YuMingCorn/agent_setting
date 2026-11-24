@@ -12,8 +12,9 @@ My custom subagents and skills. They were written for Claude Code, and the repo 
 | `skills/brain/` | `/brain` skill. Claude Code only. |
 | `skills/todo-review/` | `/todo-review` skill and its SessionStart hook script `todo-reminder.ps1`. **Source of truth.** |
 | `skills/wrap-up/` | `/wrap-up` skill. **Source of truth.** |
+| `skills/restate/` | `/restate` skill. **Source of truth.** |
 | `skills/session-review/` | `/session-review` skill and its script `session_review.py`. Claude Code only. |
-| `portable/skills/` | `todo-review` and `wrap-up` in the open [Agent Skills](https://agentskills.io/specification) format (only `name` and `description` in the frontmatter). Generated. |
+| `portable/skills/` | `todo-review`, `wrap-up` and `restate` in the open [Agent Skills](https://agentskills.io/specification) format (only `name` and `description` in the frontmatter). Generated. |
 | `portable/codex/agents/` | The 6 agents as Codex TOML files. Generated. |
 | `portable/gemini/agents/` | The 6 agents as Gemini CLI Markdown files. Generated. |
 | `build.ps1` | Generates `portable/` from `agents/` and `skills/`. |
@@ -121,6 +122,14 @@ Ends a work session in this order:
 4. Ends with a recap that stands on its own: what was done, the check result, the commit and where it went, the leftover item numbers, and the next step.
 
 By default it commits locally only. It pushes or opens a pull request only when you write `push` or `pr`, or ask for it in the same request. It never force-pushes, merges, deletes a branch or creates a repository. The project's own rules (for example "never push") win over this skill. Claude may also start it when you say "wrap up" or "收工".
+
+### `/restate` (Claude Code, Codex, Gemini CLI)
+
+```
+/restate [the task to restate; default: your latest request]
+```
+
+Before any work starts, the agent says in its own words what your goal is, what problem you want to solve, and which guesses it made. It ends with numbered questions, the most important first, each with a default answer, and then waits for your reply. It changes no files in that turn. It may only read files and run read-only commands to understand the request. Your answers are the go-ahead to start the task. Claude may also start it when you say "先別動手", "用你自己的話說" or "restate in your own words".
 
 ### `/session-review` (Claude Code only)
 
