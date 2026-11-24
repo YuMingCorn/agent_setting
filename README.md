@@ -13,8 +13,9 @@ My custom subagents and skills. They were written for Claude Code, and the repo 
 | `skills/todo-review/` | `/todo-review` skill and its SessionStart hook script `todo-reminder.ps1`. **Source of truth.** |
 | `skills/wrap-up/` | `/wrap-up` skill. **Source of truth.** |
 | `skills/restate/` | `/restate` skill. **Source of truth.** |
+| `skills/first-principle/` | `/first-principle` skill. **Source of truth.** |
 | `skills/session-review/` | `/session-review` skill and its script `session_review.py`. Claude Code only. |
-| `portable/skills/` | `todo-review`, `wrap-up` and `restate` in the open [Agent Skills](https://agentskills.io/specification) format (only `name` and `description` in the frontmatter). Generated. |
+| `portable/skills/` | `todo-review`, `wrap-up`, `restate` and `first-principle` in the open [Agent Skills](https://agentskills.io/specification) format (only `name` and `description` in the frontmatter). Generated. |
 | `portable/codex/agents/` | The 6 agents as Codex TOML files. Generated. |
 | `portable/gemini/agents/` | The 6 agents as Gemini CLI Markdown files. Generated. |
 | `build.ps1` | Generates `portable/` from `agents/` and `skills/`. |
@@ -130,6 +131,14 @@ By default it commits locally only. It pushes or opens a pull request only when 
 ```
 
 Before any work starts, the agent says in its own words what your goal is, what problem you want to solve, and which guesses it made. It ends with numbered questions, the most important first, each with a default answer, and then waits for your reply. It changes no files in that turn. It may only read files and run read-only commands to understand the request. Your answers are the go-ahead to start the task. Claude may also start it when you say "先別動手", "用你自己的話說" or "restate in your own words".
+
+### `/first-principle` (Claude Code, Codex, Gemini CLI)
+
+```
+/first-principle [the problem to think through; default: your latest request]
+```
+
+Solves a problem by first-principles thinking. The agent states the goal without any method in it, and lists every assumption behind the usual solution. It reduces each assumption to its basic facts and marks it as an axiom (a fact that holds no matter what anyone prefers), a convention (true only because people chose it) or an unverified belief. Then it rebuilds the solution from the axioms alone, shows each reasoning step, and compares the result with the usual way, with the risk of each change. It checks facts by reading code, running commands or measuring, not from memory. Claude may also start it when you say "第一原理", "從根本想" or "first principles".
 
 ### `/session-review` (Claude Code only)
 

@@ -13,8 +13,9 @@
 | `skills/todo-review/` | `/todo-review` skill 和它的 SessionStart hook 腳本 `todo-reminder.ps1`。**修改來源。** |
 | `skills/wrap-up/` | `/wrap-up` skill。**修改來源。** |
 | `skills/restate/` | `/restate` skill。**修改來源。** |
+| `skills/first-principle/` | `/first-principle` skill。**修改來源。** |
 | `skills/session-review/` | `/session-review` skill 和它的腳本 `session_review.py`。只能在 Claude Code 使用。 |
-| `portable/skills/` | 開放標準 [Agent Skills](https://agentskills.io/specification) 格式的 `todo-review`、`wrap-up` 和 `restate`，frontmatter 只有 `name` 和 `description`。自動產生。 |
+| `portable/skills/` | 開放標準 [Agent Skills](https://agentskills.io/specification) 格式的 `todo-review`、`wrap-up`、`restate` 和 `first-principle`，frontmatter 只有 `name` 和 `description`。自動產生。 |
 | `portable/codex/agents/` | 6 個 agent 的 Codex TOML 檔。自動產生。 |
 | `portable/gemini/agents/` | 6 個 agent 的 Gemini CLI Markdown 檔。自動產生。 |
 | `build.ps1` | 從 `agents/` 和 `skills/` 產生 `portable/`。 |
@@ -130,6 +131,14 @@ powershell -ExecutionPolicy Bypass -File .\deploy.ps1 -All
 ```
 
 在開始工作之前，agent 先用自己的話說出你的目標、你想解決的問題，以及它做了哪些猜測。最後列出編號的問題，最重要的排第一，每題都附上預設答案，然後等你回覆。這一輪它不改任何檔案，只會讀檔案和執行唯讀指令來了解你的要求。你回答之後，它就開始做事。你說「先別動手」、「用你自己的話說」或「restate in your own words」時，Claude 也可能自動啟動它。
+
+### `/first-principle`（Claude Code、Codex、Gemini CLI）
+
+```
+/first-principle [要思考的問題，預設是你最新的要求]
+```
+
+用第一原理思維解決問題。agent 先寫出不含任何做法的目標，再列出一般解法背後的所有假設。它把每個假設拆到最基本的事實，標成公理（不論誰的偏好都成立的事實）、慣例（只因為大家這樣選才成立）或未驗證的看法。接著只用公理重新推演出解法，列出每一步推理，並和一般做法比較，說明每個改變的風險。它會讀程式碼、執行指令或實際量測來確認事實，不憑記憶。你說「第一原理」、「從根本想」或「first principles」時，Claude 也可能自動啟動它。
 
 ### `/session-review`（只能在 Claude Code 使用）
 
