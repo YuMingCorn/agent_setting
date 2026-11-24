@@ -8,7 +8,7 @@ My custom subagents and skills. They were written for Claude Code, and the repo 
 
 | Path | What it holds |
 |---|---|
-| `agents/` | 6 custom subagents in Claude Code format. **Source of truth.** |
+| `agents/` | 7 custom subagents in Claude Code format. **Source of truth.** |
 | `skills/brain/` | `/brain` skill. Claude Code only. |
 | `skills/todo-review/` | `/todo-review` skill and its SessionStart hook script `todo-reminder.ps1`. **Source of truth.** |
 | `skills/wrap-up/` | `/wrap-up` skill. **Source of truth.** |
@@ -16,8 +16,8 @@ My custom subagents and skills. They were written for Claude Code, and the repo 
 | `skills/first-principle/` | `/first-principle` skill. **Source of truth.** |
 | `skills/session-review/` | `/session-review` skill and its script `session_review.py`. Claude Code only. |
 | `portable/skills/` | `todo-review`, `wrap-up`, `restate` and `first-principle` in the open [Agent Skills](https://agentskills.io/specification) format (only `name` and `description` in the frontmatter). Generated. |
-| `portable/codex/agents/` | The 6 agents as Codex TOML files. Generated. |
-| `portable/gemini/agents/` | The 6 agents as Gemini CLI Markdown files. Generated. |
+| `portable/codex/agents/` | The 7 agents as Codex TOML files. Generated. |
+| `portable/gemini/agents/` | The 7 agents as Gemini CLI Markdown files. Generated. |
 | `build.ps1` | Generates `portable/` from `agents/` and `skills/`. |
 | `deploy.ps1` | Copies the files into your home folder. |
 | `backup.ps1` | Copies direct edits in `~/.claude` back into the repo. |
@@ -63,8 +63,9 @@ Each agent is a subagent that the main agent starts for one task. The idea is to
 
 | Agent | Claude model | Tools | Use it for |
 |---|---|---|---|
-| `Explore` | Haiku | Read, Grep, Glob, WebFetch, WebSearch | Read-only search with a known keyword or target: find files, grep code, look up docs. Returns a short answer with `path:line` locations. |
-| `sonnet-search` | Sonnet | Read, Grep, Glob, WebFetch, WebSearch | Read-only search that needs judgment: trace how code or rules connect across files, or find something without a known keyword. Separates what it saw from what it inferred. |
+| `haiku-explore` | Haiku | Read, Grep, Glob | Read-only search of local files with a known keyword or target: find files, grep code, read local docs. No web access. Returns a short answer with `path:line` locations. |
+| `sonnet-search` | Sonnet | Read, Grep, Glob | Read-only search of local files that needs judgment: trace how code or rules connect across files, or find something without a known keyword. No web access. Separates what it saw from what it inferred. |
+| `sonnet-web` | Sonnet | WebSearch, WebFetch | Read-only web research: docs, APIs, versions, releases and other public facts. No access to local files. Prefers primary sources and cites each claim with its URL and date. |
 | `haiku-audit` | Haiku | Read, Grep, Glob | Check many files against a short, explicit checklist (frontmatter fields, naming rules, forbidden patterns). Reports each violation and changes nothing. |
 | `haiku-worker` | Haiku | All | Repetitive work across many items whose results are easy to check: renaming, extracting fields, tagging, short summaries. Not for code. |
 | `opus-builder` | Opus | All | Build from a clear brief after the plan is decided. Writes and changes code and files, and reports what it changed file by file. |
@@ -74,7 +75,7 @@ How the generated versions differ:
 
 - **Model**: the Codex and Gemini files set no model, so each agent uses the main session's model. To pick one, add `model = "..."` (Codex) or `model: ...` (Gemini).
 - **Tools on Gemini CLI**: the tool list is translated, for example `Read` to `read_file` and `Grep` to `grep_search`. Agents with no tool list get all tools.
-- **Tools on Codex**: a Codex agent file cannot limit tools. Codex subagents use the parent's sandbox and approvals, so the read-only agents stay read-only only because their instructions say so.
+- **Tools on Codex**: a Codex agent file cannot limit tools. Codex subagents use the parent's sandbox and approvals, so the read-only agents stay read-only only because their instructions say so. The same goes for the split between local and web search: on Codex, `haiku-explore` and `sonnet-search` could still reach the web, and `sonnet-web` could still read local files.
 
 ## Skills
 
@@ -191,7 +192,7 @@ If you changed a file directly in `~/.claude`, copy the change back with `backup
 ## Notes
 
 - **Status**: the Claude Code files are tested. The Codex and Gemini CLI files follow the official docs, but they have not been run in Codex or Gemini CLI yet.
-- Gemini CLI agent names allow only lowercase letters, numbers, hyphens and underscores, so `Explore` becomes `explore` in the Gemini files.
+- Gemini CLI agent names allow only lowercase letters, numbers, hyphens and underscores. `build.ps1` lowercases each name for the Gemini files and stops with an error on any other character.
 - On Gemini CLI, `run_shell_command` is the documented shell tool name in the hooks docs. The docs do not say what happens with an unknown tool name.
 - The scripts are for Windows (PowerShell 5.1 and `robocopy`). They contain ASCII characters only, because Windows PowerShell 5.1 reads a UTF-8 file without a BOM in the system code page.
 - `.gitattributes` keeps LF line endings, so installed files are byte-identical to the ones in the repo.

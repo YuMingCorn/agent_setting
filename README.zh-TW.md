@@ -8,7 +8,7 @@
 
 | 路徑 | 內容 |
 |---|---|
-| `agents/` | 6 個自訂 subagent，Claude Code 格式。**修改來源。** |
+| `agents/` | 7 個自訂 subagent，Claude Code 格式。**修改來源。** |
 | `skills/brain/` | `/brain` skill。只能在 Claude Code 使用。 |
 | `skills/todo-review/` | `/todo-review` skill 和它的 SessionStart hook 腳本 `todo-reminder.ps1`。**修改來源。** |
 | `skills/wrap-up/` | `/wrap-up` skill。**修改來源。** |
@@ -16,8 +16,8 @@
 | `skills/first-principle/` | `/first-principle` skill。**修改來源。** |
 | `skills/session-review/` | `/session-review` skill 和它的腳本 `session_review.py`。只能在 Claude Code 使用。 |
 | `portable/skills/` | 開放標準 [Agent Skills](https://agentskills.io/specification) 格式的 `todo-review`、`wrap-up`、`restate` 和 `first-principle`，frontmatter 只有 `name` 和 `description`。自動產生。 |
-| `portable/codex/agents/` | 6 個 agent 的 Codex TOML 檔。自動產生。 |
-| `portable/gemini/agents/` | 6 個 agent 的 Gemini CLI Markdown 檔。自動產生。 |
+| `portable/codex/agents/` | 7 個 agent 的 Codex TOML 檔。自動產生。 |
+| `portable/gemini/agents/` | 7 個 agent 的 Gemini CLI Markdown 檔。自動產生。 |
 | `build.ps1` | 從 `agents/` 和 `skills/` 產生 `portable/`。 |
 | `deploy.ps1` | 把檔案複製到你的使用者資料夾。 |
 | `backup.ps1` | 把直接在 `~/.claude` 做的修改複製回 repo。 |
@@ -63,8 +63,9 @@ powershell -ExecutionPolicy Bypass -File .\deploy.ps1 -All
 
 | Agent | Claude 模型 | 工具 | 用途 |
 |---|---|---|---|
-| `Explore` | Haiku | Read、Grep、Glob、WebFetch、WebSearch | 有明確關鍵字或目標的唯讀搜尋：找檔案、搜尋程式碼、查文件。回傳簡短答案和 `path:line` 位置。 |
-| `sonnet-search` | Sonnet | Read、Grep、Glob、WebFetch、WebSearch | 需要判斷的唯讀搜尋：追蹤程式碼或規則在檔案之間的關係，或找沒有明確關鍵字的東西。會分開列出親眼看到的和推論出來的。 |
+| `haiku-explore` | Haiku | Read、Grep、Glob | 有明確關鍵字或目標的本機唯讀搜尋：找檔案、搜尋程式碼、讀本機文件。不能上網。回傳簡短答案和 `path:line` 位置。 |
+| `sonnet-search` | Sonnet | Read、Grep、Glob | 需要判斷的本機唯讀搜尋：追蹤程式碼或規則在檔案之間的關係，或找沒有明確關鍵字的東西。不能上網。會分開列出親眼看到的和推論出來的。 |
+| `sonnet-web` | Sonnet | WebSearch、WebFetch | 唯讀的上網查詢：文件、API、版本、發布紀錄和其他公開資訊。不能讀本機檔案。優先用第一手來源，每個結論都附網址和日期。 |
 | `haiku-audit` | Haiku | Read、Grep、Glob | 用一份簡短明確的清單檢查大量檔案（frontmatter 欄位、命名規則、禁用寫法）。逐條回報違規，不修改任何東西。 |
 | `haiku-worker` | Haiku | 全部 | 結果容易檢查的大量重複工作：改名、擷取欄位、加標籤、簡短摘要。不寫程式。 |
 | `opus-builder` | Opus | 全部 | 計畫決定後，照明確的說明實作。撰寫和修改程式碼與檔案，並逐檔回報改了什麼。 |
@@ -74,7 +75,7 @@ powershell -ExecutionPolicy Bypass -File .\deploy.ps1 -All
 
 - **模型**：Codex 和 Gemini 的檔案沒有指定模型，所以每個 agent 都用主 session 的模型。要指定的話，加上 `model = "..."`（Codex）或 `model: ...`（Gemini）。
 - **Gemini CLI 的工具**：工具清單會換成 Gemini 的名稱，例如 `Read` 換成 `read_file`、`Grep` 換成 `grep_search`。沒有工具清單的 agent 可以用全部工具。
-- **Codex 的工具**：Codex 的 agent 檔不能限制工具。Codex 的 subagent 沿用主 agent 的沙箱和核准設定，所以唯讀 agent 能保持唯讀，只是因為它們的說明要求它們不要修改檔案。
+- **Codex 的工具**：Codex 的 agent 檔不能限制工具。Codex 的 subagent 沿用主 agent 的沙箱和核准設定，所以唯讀 agent 能保持唯讀，只是因為它們的說明要求它們不要修改檔案。本機搜尋和上網搜尋的區分也一樣：在 Codex 上，`haiku-explore` 和 `sonnet-search` 仍然可能上網，`sonnet-web` 也仍然可能讀本機檔案。
 
 ## Skills
 
@@ -191,7 +192,7 @@ powershell -ExecutionPolicy Bypass -File .\deploy.ps1 -All
 ## 注意
 
 - **測試狀態**：Claude Code 的檔案已經測試過。Codex 和 Gemini CLI 的檔案是照官方文件產生的，但還沒有在 Codex 或 Gemini CLI 裡實際執行過。
-- Gemini CLI 的 agent 名稱只能用小寫字母、數字、連字號和底線，所以 `Explore` 在 Gemini 的檔案裡改成 `explore`。
+- Gemini CLI 的 agent 名稱只能用小寫字母、數字、連字號和底線。`build.ps1` 產生 Gemini 檔案時會把名稱轉成小寫，遇到其他字元就報錯停止。
 - 在 Gemini CLI 上，`run_shell_command` 是 hooks 文件裡寫的 shell 工具名稱。文件沒有說明遇到不認得的工具名稱時會怎樣。
 - 腳本只能在 Windows 上執行，需要 PowerShell 5.1 和 `robocopy`。腳本只用英文字元，因為 Windows PowerShell 5.1 會用系統編碼讀取沒有 BOM 的 UTF-8 檔案，中文會變成亂碼。
 - `.gitattributes` 固定使用 LF 換行，所以安裝出來的檔案和 repo 裡的檔案完全相同。
