@@ -4,6 +4,18 @@
 
 My custom subagents and skills. They were written for Claude Code, and the repo also ships generated versions for OpenAI Codex and Google Gemini CLI, so anyone can install them in the tool they use.
 
+## Quick start
+
+On Windows, install every agent and skill for Claude Code, Codex and Gemini CLI at once:
+
+```powershell
+git clone https://github.com/YuMingCorn/agent_setting.git
+cd agent_setting
+powershell -ExecutionPolicy Bypass -File .\deploy.ps1 -All
+```
+
+Restart the tool, then type `/reframe <your request>` in Claude Code to try it. For macOS, Linux or a single tool, see "Install" below.
+
 ## Contents
 
 | Path | What it holds |
@@ -14,8 +26,10 @@ My custom subagents and skills. They were written for Claude Code, and the repo 
 | `skills/wrap-up/` | `/wrap-up` skill. **Source of truth.** |
 | `skills/restate/` | `/restate` skill. **Source of truth.** |
 | `skills/first-principle/` | `/first-principle` skill. **Source of truth.** |
+| `skills/reframe/` | `/reframe` skill. **Source of truth.** |
+| `skills/sharpen/` | `/sharpen` skill. **Source of truth.** |
 | `skills/session-review/` | `/session-review` skill and its script `session_review.py`. Claude Code only. |
-| `portable/skills/` | `todo-review`, `wrap-up`, `restate` and `first-principle` in the open [Agent Skills](https://agentskills.io/specification) format (only `name` and `description` in the frontmatter). Generated. |
+| `portable/skills/` | `todo-review`, `wrap-up`, `restate`, `first-principle`, `reframe` and `sharpen` in the open [Agent Skills](https://agentskills.io/specification) format (only `name` and `description` in the frontmatter). Generated. |
 | `portable/codex/agents/` | The 7 agents as Codex TOML files. Generated. |
 | `portable/gemini/agents/` | The 7 agents as Gemini CLI Markdown files. Generated. |
 | `build.ps1` | Generates `portable/` from `agents/` and `skills/`. |
@@ -47,13 +61,7 @@ cp -R portable/skills/* ~/.agents/skills/
 cp portable/codex/agents/* ~/.codex/agents/
 ```
 
-Windows, all tools at once:
-
-```powershell
-git clone https://github.com/YuMingCorn/agent_setting.git
-cd agent_setting
-powershell -ExecutionPolicy Bypass -File .\deploy.ps1 -All
-```
+Windows, all tools at once: see "Quick start" above.
 
 Restart the tool after you install.
 
@@ -85,10 +93,12 @@ How the generated versions differ:
 | `/wrap-up` | Claude Code, Codex, Gemini CLI | Ends a session: checks, commits, saves leftovers, and gives a recap. |
 | `/restate` | Claude Code, Codex, Gemini CLI | Restates your goal in its own words and asks questions before any work starts. |
 | `/first-principle` | Claude Code, Codex, Gemini CLI | Reduces a problem to its axioms and rebuilds the solution from them. |
+| `/reframe` | Claude Code, Codex, Gemini CLI | Gets the problem right before work starts: ambiguity, terms and constraints, then a rewritten request. |
+| `/sharpen` | Claude Code, Codex, Gemini CLI | Raises the method and the acceptance checks to expert level, and rewrites the prompt. |
 | `/session-review` | Claude Code only | Reviews your recent sessions and proposes skills, scripts or rules. |
 | `/brain` | Claude Code only | Runs a big job with Fable as the planner and the agents as workers. |
 
-How to call a skill: type `/name` in Claude Code, and `$name` in Codex (for example `$first-principle`). In Gemini CLI, ask for it in plain words, for example "think this through from first principles". In all three tools, the agent may also start a skill on its own when your words match its description.
+How to call a skill: type `/name` in Claude Code, and `$name` in Codex (for example `$first-principle`). In Gemini CLI, ask for it in plain words, for example "think this through from first principles". In all three tools, the agent may also start a skill on its own when your words match its description. The exceptions are `/reframe`, `/sharpen`, `/session-review` and `/brain`: they run only when you call them by name.
 
 ### `/todo-review` (Claude Code, Codex, Gemini CLI)
 
@@ -151,6 +161,24 @@ Before any work starts, the agent says in its own words what your goal is, what 
 ```
 
 Solves a problem by first-principles thinking. The agent states the goal without any method in it, and lists every assumption behind the usual solution. It reduces each assumption to its basic facts and marks it as an axiom (a fact that holds no matter what anyone prefers), a convention (true only because people chose it) or an unverified belief. Then it rebuilds the solution from the axioms alone, shows each reasoning step, and compares the result with the usual way, with the risk of each change. It checks facts by reading code, running commands or measuring, not from memory. Claude may also start it when you say "第一原理", "第一性原理", "從根本想", "拆到最基本", "first principles" or "reason from first principles".
+
+### `/reframe` (Claude Code, Codex, Gemini CLI)
+
+```
+/reframe [the request to clarify]
+```
+
+Gets the problem right, and stated right, before any work starts. The agent reads the source material, lists the possible readings of the request and picks one, and collects 8 to 12 key terms (each with a checked source), ideas from nearby fields and the constraints you left out. It ends with a rewritten request that you can hand to an agent. It builds nothing, and runs only when you type `/reframe`. The skill text is in Traditional Chinese.
+
+### `/sharpen` (Claude Code, Codex, Gemini CLI)
+
+```
+/sharpen [the request to deepen, usually the output of /reframe]
+```
+
+Once the problem is clear, raises the method to the level of the best people in the field. It tests technical choices with a small experiment before it recommends one, and leaves product trade-offs to you with the options listed. It accepts only outside evidence, such as tests, benchmarks or a comparison with reference data. It ends with a prompt that an agent can run directly. It runs only when you type `/sharpen`. The skill text is in Traditional Chinese.
+
+Suggested order: `/reframe` to define the problem, `/sharpen` to set the method and checks, then build.
 
 ### `/session-review` (Claude Code only)
 

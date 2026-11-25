@@ -4,6 +4,18 @@
 
 這是我自訂的 subagent 和 skill。它們原本是為 Claude Code 寫的，這個 repo 也附上為 OpenAI Codex 和 Google Gemini CLI 產生的版本，所以任何人都可以裝到自己用的工具裡。
 
+## Quick Start
+
+Windows 上一次裝好 Claude Code、Codex 和 Gemini CLI 的全部 agent 和 skill：
+
+```powershell
+git clone https://github.com/YuMingCorn/agent_setting.git
+cd agent_setting
+powershell -ExecutionPolicy Bypass -File .\deploy.ps1 -All
+```
+
+重新開啟工具，在 Claude Code 輸入 `/reframe <你的需求>` 試試看。macOS、Linux 或只裝單一工具，請看下面的「安裝」。
+
 ## 內容
 
 | 路徑 | 內容 |
@@ -14,8 +26,10 @@
 | `skills/wrap-up/` | `/wrap-up` skill。**修改來源。** |
 | `skills/restate/` | `/restate` skill。**修改來源。** |
 | `skills/first-principle/` | `/first-principle` skill。**修改來源。** |
+| `skills/reframe/` | `/reframe` skill。**修改來源。** |
+| `skills/sharpen/` | `/sharpen` skill。**修改來源。** |
 | `skills/session-review/` | `/session-review` skill 和它的腳本 `session_review.py`。只能在 Claude Code 使用。 |
-| `portable/skills/` | 開放標準 [Agent Skills](https://agentskills.io/specification) 格式的 `todo-review`、`wrap-up`、`restate` 和 `first-principle`，frontmatter 只有 `name` 和 `description`。自動產生。 |
+| `portable/skills/` | 開放標準 [Agent Skills](https://agentskills.io/specification) 格式的 `todo-review`、`wrap-up`、`restate`、`first-principle`、`reframe` 和 `sharpen`，frontmatter 只有 `name` 和 `description`。自動產生。 |
 | `portable/codex/agents/` | 7 個 agent 的 Codex TOML 檔。自動產生。 |
 | `portable/gemini/agents/` | 7 個 agent 的 Gemini CLI Markdown 檔。自動產生。 |
 | `build.ps1` | 從 `agents/` 和 `skills/` 產生 `portable/`。 |
@@ -47,13 +61,7 @@ cp -R portable/skills/* ~/.agents/skills/
 cp portable/codex/agents/* ~/.codex/agents/
 ```
 
-Windows，一次安裝所有工具：
-
-```powershell
-git clone https://github.com/YuMingCorn/agent_setting.git
-cd agent_setting
-powershell -ExecutionPolicy Bypass -File .\deploy.ps1 -All
-```
+Windows 一次安裝所有工具，請看上面的「Quick Start」。
 
 安裝後重新開啟工具。
 
@@ -85,10 +93,12 @@ powershell -ExecutionPolicy Bypass -File .\deploy.ps1 -All
 | `/wrap-up` | Claude Code、Codex、Gemini CLI | 結束工作：檢查、commit、記下沒做完的事，最後給一段總結。 |
 | `/restate` | Claude Code、Codex、Gemini CLI | 開始工作前，先用自己的話重述你的目標並提問。 |
 | `/first-principle` | Claude Code、Codex、Gemini CLI | 把問題拆到公理，再從公理重新推演出解法。 |
+| `/reframe` | Claude Code、Codex、Gemini CLI | 動手前先把問題定義對：釐清歧義、術語和約束，重寫需求。 |
+| `/sharpen` | Claude Code、Codex、Gemini CLI | 把做法和驗收拉到頂尖水準，重寫成可直接執行的提示詞。 |
 | `/session-review` | 只能在 Claude Code 使用 | 回顧你最近的 session，提出可以做成 skill、腳本或規則的建議。 |
 | `/brain` | 只能在 Claude Code 使用 | 用 Fable 規劃大型工作，再交給各個 agent 執行。 |
 
-呼叫方式：在 Claude Code 裡輸入 `/名稱`，在 Codex 裡輸入 `$名稱`（例如 `$first-principle`）。在 Gemini CLI 裡直接用文字要求，例如「用第一原理想這個問題」。三個工具裡，只要你的說法符合 skill 的描述，agent 也可能自動啟動它。
+呼叫方式：在 Claude Code 裡輸入 `/名稱`，在 Codex 裡輸入 `$名稱`（例如 `$first-principle`）。在 Gemini CLI 裡直接用文字要求，例如「用第一原理想這個問題」。三個工具裡，只要你的說法符合 skill 的描述，agent 也可能自動啟動它。`/reframe`、`/sharpen`、`/session-review` 和 `/brain` 例外，只有你明確呼叫時才會執行。
 
 ### `/todo-review`（Claude Code、Codex、Gemini CLI）
 
@@ -151,6 +161,24 @@ powershell -ExecutionPolicy Bypass -File .\deploy.ps1 -All
 ```
 
 用第一原理思維解決問題。agent 先寫出不含任何做法的目標，再列出一般解法背後的所有假設。它把每個假設拆到最基本的事實，標成公理（不論誰的偏好都成立的事實）、慣例（只因為大家這樣選才成立）或未驗證的看法。接著只用公理重新推演出解法，列出每一步推理，並和一般做法比較，說明每個改變的風險。它會讀程式碼、執行指令或實際量測來確認事實，不憑記憶。你說「第一原理」、「第一性原理」、「從根本想」、「拆到最基本」或「first principles」時，Claude 也可能自動啟動它。
+
+### `/reframe`（Claude Code、Codex、Gemini CLI）
+
+```
+/reframe [要釐清的需求]
+```
+
+動手前先把問題想對、說對。agent 讀一手材料，列出需求的幾種解讀並選定一種，整理 8–12 個關鍵術語（附已核驗的出處）、相鄰領域的做法和你漏掉的約束，最後重寫成可以直接交給 agent 的需求。它不實作，只在你輸入 `/reframe` 時執行。
+
+### `/sharpen`（Claude Code、Codex、Gemini CLI）
+
+```
+/sharpen [要做深的需求，通常是 /reframe 的產出]
+```
+
+問題定義清楚後，把做法拉到頂尖從業者的水準。能用小實驗驗證的技術選型，它先實測再建議；產品取捨則列出選項留給你決定。驗收只認外部證據，例如測試、基準或與參考資料對照。最後輸出一份可以直接執行的提示詞。只在你輸入 `/sharpen` 時執行。
+
+建議順序：`/reframe` 定義問題 → `/sharpen` 訂做法與驗收 → 開始實作。
 
 ### `/session-review`（只能在 Claude Code 使用）
 
