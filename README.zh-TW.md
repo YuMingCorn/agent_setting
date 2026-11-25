@@ -1,8 +1,8 @@
 [English](README.md) | **繁體中文**
 
-# Claude Code、Codex 與 Gemini CLI 的 agent 設定
+# Claude Code、Codex 與 Antigravity CLI 的 agent 設定
 
-我自訂的 subagent 和 skill。原本為 Claude Code 撰寫，repo 也附上 Codex 和 Gemini CLI 的自動產生版本。
+我自訂的 subagent 和 skill。原本為 Claude Code 撰寫，repo 也附上 Codex 和 Antigravity CLI（`agy`）的自動產生版本，方便把部分工作交給這些工具。
 
 ## Quick Start
 
@@ -30,15 +30,15 @@ cp portable/codex/agents/* ~/.codex/agents/
 |---|---|---|
 | Claude Code | `agents/*`、`skills/*` | `~/.claude/agents/`、`~/.claude/skills/` |
 | Codex | `portable/skills/*`、`portable/codex/agents/*` | `~/.agents/skills/`、`~/.codex/agents/` |
-| Gemini CLI | `portable/skills/*`、`portable/gemini/agents/*` | `~/.agents/skills/`（或 `~/.gemini/skills/`）、`~/.gemini/agents/` |
+| Antigravity CLI | `portable/skills/*`、`portable/antigravity/agents/*` | `~/.agents/skills/`（或 `~/.gemini/config/skills/`）、`~/.gemini/agents/`（或 `~/.gemini/config/agents/`） |
 
 ## 內容
 
 | 路徑 | 內容 |
 |---|---|
 | `agents/` | 7 個 subagent，Claude Code 格式。**修改來源。** |
-| `skills/` | 8 個 skill，Claude Code 格式。**修改來源。** |
-| `portable/` | `build.ps1` 產生的 Codex、Gemini CLI agent，以及 [Agent Skills](https://agentskills.io/specification) 格式的 6 個 skill。不要手動修改。 |
+| `skills/` | 7 個 skill，Claude Code 格式。**修改來源。** |
+| `portable/` | `build.ps1` 產生的 Codex、Antigravity CLI agent，以及 [Agent Skills](https://agentskills.io/specification) 格式的 5 個 skill。不要手動修改。 |
 | `build.ps1` | 從 `agents/` 和 `skills/` 產生 `portable/`。 |
 | `deploy.ps1` | 把檔案複製到使用者資料夾。 |
 | `backup.ps1` | 把直接在 `~/.claude` 做的修改複製回 repo。 |
@@ -57,26 +57,25 @@ cp portable/codex/agents/* ~/.codex/agents/
 | `opus-builder` | Opus | 全部 | 計畫定案後照說明實作，逐檔回報修改。 |
 | `sonnet-checker` | Sonnet | Read、Grep、Glob、Bash | 完成前對照說明檢查成果，回報 `PASS` 或 `FAIL`。 |
 
-Codex 和 Gemini CLI 版本有三個差異：
+Codex 和 Antigravity CLI 版本有以下差異：
 
 - 不指定模型，沿用主 session 的模型。
-- Gemini CLI 的工具名稱會自動轉換，例如 `Read` 轉成 `read_file`。
-- Codex 不能限制工具，所以「唯讀」和「只查本機或只查網路」只靠說明約束。
+- Antigravity CLI 的工具名稱會自動轉換，例如 `Read` 轉成 `read_file`。它的自訂 agent 拿不到搜尋工具，所以 `Grep` 和 `Glob` 轉成 `run_command`（用 shell 指令搜尋），`WebFetch` 轉成 `search_web`。沒有 `tools` 的 agent 會寫入完整的工具清單，因為 Antigravity 只給這種 agent 一小組唯讀工具。
+- Codex 不能限制工具，所以「唯讀」和「只查本機或只查網路」只靠說明約束。Antigravity CLI 的搜尋 agent 需要 `run_command`，所以「唯讀」也只靠說明約束。
 
 ## Skills
 
 | Skill | 可用工具 | 用途 |
 |---|---|---|
-| `/reframe` | Claude Code、Codex、Gemini CLI | 動手前把問題定義對，重寫需求。 |
-| `/sharpen` | Claude Code、Codex、Gemini CLI | 把做法和驗收拉到頂尖水準，重寫提示詞。 |
-| `/restate` | Claude Code、Codex、Gemini CLI | 用自己的話重述你的目標並提問。 |
-| `/first-principle` | Claude Code、Codex、Gemini CLI | 拆到公理，再從公理推演出解法。 |
-| `/todo-review` | Claude Code、Codex、Gemini CLI | 逐項決定目前專案待辦清單裡的事。 |
-| `/wrap-up` | Claude Code、Codex、Gemini CLI | 收工：檢查、commit，並給總結。 |
+| `/reframe` | Claude Code、Codex、Antigravity CLI | 動手前把問題定義對，重寫需求。 |
+| `/sharpen` | Claude Code、Codex、Antigravity CLI | 把做法和驗收拉到頂尖水準，重寫提示詞。 |
+| `/restate` | Claude Code、Codex、Antigravity CLI | 用自己的話重述你的目標並提問。 |
+| `/first-principle` | Claude Code、Codex、Antigravity CLI | 拆到公理，再從公理推演出解法。 |
+| `/wrap-up` | Claude Code、Codex、Antigravity CLI | 收工：檢查、commit，並給總結。 |
 | `/session-review` | 只限 Claude Code | 回顧最近的 session，建議新的 skill、腳本或規則。 |
 | `/brain` | 只限 Claude Code | 用 Fable 規劃大型工作，再分派給 agent。 |
 
-呼叫方式：Claude Code 輸入 `/名稱`，Codex 輸入 `$名稱`，Gemini CLI 用文字點名 skill。`/restate`、`/first-principle` 和 `/wrap-up` 也會在你的說法符合描述時自動啟動；其他 skill 只在你明確呼叫時執行。
+呼叫方式：Claude Code 和 Antigravity CLI 輸入 `/名稱`，Codex 輸入 `$名稱`。`/restate`、`/first-principle` 和 `/wrap-up` 也會在你的說法符合描述時自動啟動；其他 skill 只在你明確呼叫時執行。
 
 ### `/reframe`
 
@@ -109,14 +108,6 @@ Codex 和 Gemini CLI 版本有三個差異：
 ```
 
 把一般解法背後的假設分成公理、慣例和未驗證的看法，只用公理重新推演解法，並說明和一般做法相比的風險。事實靠讀程式碼或實測確認，不憑記憶。
-
-### `/todo-review`
-
-```
-/todo-review [add <描述> | list]
-```
-
-逐項詢問目前專案待辦清單裡 `open` 的項目，把你的決定寫回清單並執行。`add` 新增項目，`list` 只列出不修改。清單放在 `~/.agents/todo/`，一個專案一個檔案，不進 git，三個工具共用。
 
 ### `/wrap-up`
 
@@ -157,7 +148,7 @@ Codex 和 Gemini CLI 版本有三個差異：
 
 ## 注意
 
-- Claude Code 版已測試。Codex 和 Gemini CLI 版照官方文件產生，還沒實際執行過。
+- Claude Code 版已測試。Antigravity CLI 的 agent 格式和工具名稱已在 2026-11-26 用 `agy` 實際確認。Codex 版照官方文件產生，還沒實際執行過。
 - 腳本只能在 Windows 執行（PowerShell 5.1 和 `robocopy`），並且只用 ASCII 字元，避免 PowerShell 5.1 讀錯編碼。
-- Gemini CLI 的 agent 名稱只能用小寫字母、數字、`-` 和 `_`。`build.ps1` 會自動轉成小寫，遇到其他字元就報錯。
-- `.gitattributes` 固定使用 LF 換行。待辦清單只存在本機，不在 repo 裡。
+- 產生 Antigravity CLI 版時，`build.ps1` 會把 agent 名稱轉成小寫，遇到小寫字母、數字、`-` 和 `_` 以外的字元就報錯。
+- `.gitattributes` 固定使用 LF 換行。

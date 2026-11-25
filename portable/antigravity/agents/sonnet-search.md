@@ -1,12 +1,11 @@
 ---
 name: sonnet-search
 description: "Read-only search of local files that needs judgment, such as tracing how code or rules connect across files, finding something without a known keyword, or answering \"where and why does X happen\". Local only, no web access. Use when haiku-explore is likely to miss or misread the answer; for simple lookups use haiku-explore, and for web lookups use sonnet-web."
-kind: local
+subagent: true
+mainAgent: false
 tools:
   - read_file
-  - grep_search
-  - glob
-  - list_directory
+  - run_command
 ---
 You are a read-only search agent for local files. You never write or edit files, and you have no web access.
 

@@ -1,4 +1,4 @@
-# Generate the Codex and Gemini CLI versions of the agents, and the standard
+# Generate the Codex and Antigravity CLI versions of the agents, and the standard
 # Agent Skills version of the portable skills, into .\portable\.
 # Source of truth: .\agents\*.md and .\skills\<name>\ (Claude Code format).
 # Never edit files under .\portable\ by hand; rerun this script instead.
@@ -12,17 +12,24 @@ $out  = Join-Path $repo 'portable'
 # Skills that work outside Claude Code. brain stays Claude-only: it depends on
 # Claude models, Claude-only frontmatter and the Claude agent team.
 # session-review stays Claude-only: it reads Claude Code session transcripts.
-$portableSkills = @('todo-review', 'wrap-up', 'restate', 'first-principle', 'reframe', 'sharpen')
+$portableSkills = @('wrap-up', 'restate', 'first-principle', 'reframe', 'sharpen')
 
-# Claude Code tool name -> Gemini CLI tool names
-$geminiTools = @{
+# Claude Code tool name -> Antigravity CLI (agy) tool names.
+# Checked against agy on 2026-11-26: a custom agent does not get grep_search,
+# find_by_name, list_dir or read_url_content even when it lists them, and an
+# unknown tool name stops the agent from starting. So file search goes through
+# run_command, and web fetch goes through search_web.
+$agyTools = @{
     'Read'      = @('read_file')
-    'Grep'      = @('grep_search')
-    'Glob'      = @('glob', 'list_directory')
-    'WebFetch'  = @('web_fetch')
-    'WebSearch' = @('google_web_search')
-    'Bash'      = @('run_shell_command')
+    'Grep'      = @('run_command')
+    'Glob'      = @('run_command')
+    'WebFetch'  = @('search_web')
+    'WebSearch' = @('search_web')
+    'Bash'      = @('run_command', 'manage_task')
 }
+# An agent with no tools line gets all tools in Claude Code, but only a small
+# read-only set in agy. So it gets this list.
+$agyAllTools = @('read_file', 'edit_file', 'write_file', 'run_command', 'manage_task', 'search_web')
 
 $utf8 = New-Object Text.UTF8Encoding($false)
 
@@ -78,23 +85,25 @@ foreach ($f in $agentFiles) {
     if (-not $name -or -not $desc) { throw "$($f.Name) needs name and description" }
     if ($doc.body.Contains("'''")) { throw "$($f.Name) body contains ''' and cannot go into a TOML literal string" }
 
-    # Gemini CLI: Markdown + YAML. No tools line = all tools. No model = inherit.
-    # Gemini agent names allow only lowercase letters, numbers, hyphens and underscores.
-    $gName = $name.ToLowerInvariant()
-    if ($gName -notmatch '^[a-z0-9_-]+$') { throw "$($f.Name): '$name' is not a valid Gemini agent name" }
-    $g = @('---', "name: $gName","description: $(Format-Quoted $desc)", 'kind: local')
+    # Antigravity CLI: Markdown + YAML. subagent true and mainAgent false keep it
+    # a subagent. No model = inherit. tools is always written (see $agyAllTools).
+    # Names allow only lowercase letters, numbers, hyphens and underscores.
+    $aName = $name.ToLowerInvariant()
+    if ($aName -notmatch '^[a-z0-9_-]+$') { throw "$($f.Name): '$name' is not a valid Antigravity agent name" }
+    $g = @('---', "name: $aName", "description: $(Format-Quoted $desc)", 'subagent: true', 'mainAgent: false', 'tools:')
     $tools = Split-List $doc.fm['tools']
     if ($tools.Count -gt 0) {
-        $g += 'tools:'
         $mapped = @()
         foreach ($tool in $tools) {
-            if (-not $geminiTools.ContainsKey($tool)) { throw "$($f.Name): no Gemini mapping for tool '$tool'" }
-            $mapped += $geminiTools[$tool]
+            if (-not $agyTools.ContainsKey($tool)) { throw "$($f.Name): no Antigravity mapping for tool '$tool'" }
+            $mapped += $agyTools[$tool]
         }
-        foreach ($m in ($mapped | Select-Object -Unique)) { $g += "  - $m" }
+    } else {
+        $mapped = $agyAllTools
     }
+    foreach ($m in ($mapped | Select-Object -Unique)) { $g += "  - $m" }
     $g += '---'
-    Write-Text (Join-Path $out "gemini\agents\$gName.md") (($g -join "`n") + "`n" + $doc.body)
+    Write-Text (Join-Path $out "antigravity\agents\$aName.md") (($g -join "`n") + "`n" + $doc.body)
 
     # Codex: TOML. No model = inherit. Tool limits are not settable; the body says what not to do.
     $c = @(
