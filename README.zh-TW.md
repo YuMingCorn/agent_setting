@@ -30,7 +30,7 @@ cp portable/codex/agents/* ~/.codex/agents/
 |---|---|---|
 | Claude Code | `agents/*`、`skills/*` | `~/.claude/agents/`、`~/.claude/skills/` |
 | Codex | `portable/skills/*`、`portable/codex/agents/*` | `~/.agents/skills/`、`~/.codex/agents/` |
-| Antigravity CLI | `portable/skills/*`、`portable/antigravity/agents/*` | `~/.agents/skills/`（或 `~/.gemini/config/skills/`）、`~/.gemini/agents/`（或 `~/.gemini/config/agents/`） |
+| Antigravity CLI | `portable/skills/*`、`portable/antigravity/agents/*` | `~/.agents/skills/`（或 `~/.gemini/config/skills/`）、`~/.gemini/config/agents/` |
 
 ## 內容
 

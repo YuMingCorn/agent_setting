@@ -3,7 +3,7 @@
 # - -All: also the generated files in .\portable\ (run build.ps1 first):
 #     portable\skills              -> ~/.agents/skills   (read by Codex and Antigravity CLI)
 #     portable\codex\agents        -> ~/.codex/agents
-#     portable\antigravity\agents  -> ~/.gemini/agents   (read by Antigravity CLI)
+#     portable\antigravity\agents  -> ~/.gemini/config/agents   (read by Antigravity CLI)
 # - Before copying, saves the current copies to %TEMP%\claude-deploy-backup\<timestamp>.
 # - Adds and overwrites files only. Never deletes anything in the target folders.
 # Usage:
@@ -25,7 +25,7 @@ $targets = @(
 if ($All) {
     $targets += ,@('agents-skills', 'portable\skills', '.agents\skills')
     $targets += ,@('codex-agents', 'portable\codex\agents', '.codex\agents')
-    $targets += ,@('antigravity-agents', 'portable\antigravity\agents', '.gemini\agents')
+    $targets += ,@('antigravity-agents', 'portable\antigravity\agents', '.gemini\config\agents')
 }
 
 function Invoke-Robocopy([string[]]$rcArgs, [string]$what) {

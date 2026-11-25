@@ -30,7 +30,7 @@ Restart the tool, then type `/reframe <your request>` in Claude Code to try it. 
 |---|---|---|
 | Claude Code | `agents/*`, `skills/*` | `~/.claude/agents/`, `~/.claude/skills/` |
 | Codex | `portable/skills/*`, `portable/codex/agents/*` | `~/.agents/skills/`, `~/.codex/agents/` |
-| Antigravity CLI | `portable/skills/*`, `portable/antigravity/agents/*` | `~/.agents/skills/` (or `~/.gemini/config/skills/`), `~/.gemini/agents/` (or `~/.gemini/config/agents/`) |
+| Antigravity CLI | `portable/skills/*`, `portable/antigravity/agents/*` | `~/.agents/skills/` (or `~/.gemini/config/skills/`), `~/.gemini/config/agents/` |
 
 ## Contents
 
