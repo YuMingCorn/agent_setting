@@ -1,6 +1,6 @@
 ---
 name: todo-review
-description: "Reads the current project's own to-do list in ~/.agents/todo/ and asks the user, one item at a time, about its open decisions. Items with options become a multiple-choice question; items without options ask the user to type how to continue. Writes each decision back to the list. Use when a session-start reminder asks for it, when the user says \"review todo\", \"show my to-dos\" or \"看待辦\", or types /todo-review. Also adds items (/todo-review add ...) and lists them (/todo-review list)."
+description: "Reads the current project's own to-do list in ~/.agents/todo/ and asks the user, one item at a time, about its open decisions. Items with options become a multiple-choice question; items without options ask the user to type how to continue. Writes each decision back to the list. Runs only when the user types /todo-review. Also adds items (/todo-review add ...) and lists them (/todo-review list)."
 ---
 
 # To-do review
@@ -9,7 +9,7 @@ Each project has its own to-do list. The lists are in the folder `~/.agents/todo
 
 Work only with the current project's list. Never read, mention or count another project's list.
 
-`todo-reminder.ps1` in this folder is a SessionStart hook. At session start it counts the `open` items in the current project's list and, if there are any, asks the agent to run this skill. It reads the `project:` line and the `status:` fields, so do not rename or reformat them.
+`todo-reminder.ps1` in this folder counts the `open` items in the current project's list. It is no longer registered as a SessionStart hook (removed 2026-11-24 at the user's request): this skill runs only when the user types /todo-review. It reads the `project:` line and the `status:` fields, so do not rename or reformat them.
 
 Talk to the user in the language they use. Field names in the list stay in English. Field values are in the user's language.
 
