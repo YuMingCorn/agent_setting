@@ -1,6 +1,6 @@
 ---
 name: session-review
-description: Reviews the user's recent Claude Code sessions to learn their habits. Finds what they want to be told, which questions they did not need to be asked, and which repeated requests could become a skill, script or rule. Use when the user types /session-review or asks to review, retrospect or "複盤" their recent sessions.
+description: Reviews the user's recent Claude Code sessions to learn their habits. Finds what they want to be told, which questions they did not need to be asked, and which repeated requests could become a skill, script or rule. Use only when the user types /session-review.
 argument-hint: "[days, default 30] [project name filter]"
 disable-model-invocation: true
 ---

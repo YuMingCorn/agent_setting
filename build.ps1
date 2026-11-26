@@ -127,6 +127,14 @@ foreach ($s in $portableSkills) {
     if ($doc.fm['description'].Length -gt 1024) { throw "skills/$s/SKILL.md: description is over 1024 characters" }
     $sk = @('---', "name: $s", "description: $(Format-Quoted $doc.fm['description'])", '---')
     Write-Text (Join-Path $dstDir 'SKILL.md') (($sk -join "`n") + "`n`n" + $doc.body)
+    # disable-model-invocation is Claude-only. Codex reads the same rule from
+    # agents/openai.yaml (https://developers.openai.com/codex/skills, checked
+    # 2026-11-26). Antigravity CLI and the Agent Skills spec have no such
+    # setting, so there only the description ("Use only when ...") asks for it.
+    if ($doc.fm['disable-model-invocation'] -eq 'true') {
+        if (Test-Path (Join-Path $srcDir 'agents\openai.yaml')) { throw "skills/$s/agents/openai.yaml would be overwritten" }
+        Write-Text (Join-Path $dstDir 'agents\openai.yaml') "policy:`n  allow_implicit_invocation: false"
+    }
     Get-ChildItem $srcDir -Recurse -File | Where-Object { $_.Name -ne 'SKILL.md' } | ForEach-Object {
         $rel = $_.FullName.Substring($srcDir.Length + 1)
         Write-Text (Join-Path $dstDir $rel) (Read-Text $_.FullName)

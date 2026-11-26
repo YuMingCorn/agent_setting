@@ -1,7 +1,8 @@
 ---
 name: wrap-up
-description: Ends a work session. Checks unchecked code changes, commits this session's work, and gives a short recap that lists unfinished work. Pushes or opens a pull request only when the user asks for it in the same request. Use when the user types /wrap-up or says "wrap up", "收工", "結束今天的工作" or "commit 然後收工".
+description: Ends a work session. Checks unchecked code changes, commits this session's work, and gives a short recap that lists unfinished work. Pushes or opens a pull request only when the user asks for it in the same request. Use only when the user types /wrap-up.
 argument-hint: "[push | pr] [notes for the recap]"
+disable-model-invocation: true
 ---
 
 # Wrap up

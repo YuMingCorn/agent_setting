@@ -1,63 +1,80 @@
 ---
 name: reframe
-description: "僅在使用者輸入 /reframe 時使用：讀一手材料、拆解歧義、整理關鍵術語與相鄰領域經驗、補齊約束並重寫需求。用在 /sharpen 之前。"
+description: Gets the problem right before work starts. Reads the source material, resolves ambiguous readings, collects key terms and lessons from nearby fields, fills in missing constraints, and rewrites the request. Builds nothing. Use only when the user types /reframe. Run it before /sharpen.
+argument-hint: "[the request to clarify; default: the user's latest request]"
 disable-model-invocation: true
 ---
 
-# /reframe：先把問題想對、說對
+# Reframe
 
-目標：在動手之前，把需求的**概念與表達**補齊。產出是一份重寫好的需求，讓使用者（或下游 agent）用對的詞、問對的問題。
+Get the concepts and the wording of a request right before anyone acts on it. The output is a rewritten request that uses the right terms and asks the right questions, so that the user, or an agent after them, starts from a correct problem.
 
-本 skill 只負責釐清問題，不實作，也不深挖做法。做法與驗收標準交給 /sharpen。
+This skill only makes the problem clear. It does not build anything, and it does not go deep into the method. The method and the acceptance checks are the work of /sharpen.
 
-## 步驟
+The request is the argument, or, without one, the user's latest request in this conversation. Talk to the user in the language they use.
 
-### 1. 讀一手材料
-- 直接打開使用者給的原始檔案、程式碼、連結和需求原文，逐字讀。
-- 不憑對話裡的摘要、轉述或你先前的總結判斷問題。
-- 缺材料就明說缺了什麼，以及缺了它會影響哪個判斷。
+## Steps
 
-### 2. 拆解歧義
-如果一句需求能往好幾個方向理解，先列出 2–3 種解讀，每種寫：
-- **名稱**：這類問題在業界或學界通常叫什麼
-- **意思**：照這個解讀，成品會長什麼樣
-- **區分信號**：材料裡哪些跡象支持或排除它
+### 1. Read the source material
 
-接著選定一種，寫明根據是哪些信號。如果信號不夠、選錯的代價又高，就停下來問使用者，不要硬選。需求沒有歧義時，用一句話說明即可，跳過這步。
+- Open the original files, code, links and request text that the user gave, and read them word for word.
+- Do not judge the problem from a summary, a paraphrase or your own earlier recap in this conversation.
+- If material is missing, say what is missing and which judgment it affects.
 
-### 3. 關鍵術語（8–12 個）
-按「**這個詞會在多大程度上改變最終成品**」由高到低排序。每個詞包含：
-- **含義**：一到兩句
-- **對應需求**：它落在需求的哪一塊
-- **出處**：一個真實的專案、論文或官方文件連結，那裡確實以這個意思使用這個詞
-- **怎麼用它提要求**：一句可以直接放進 prompt 的示範，說明懂了這個詞之後該怎麼向 agent 下指令
+### 2. Resolve ambiguity
 
-### 4. 相鄰領域借鏡（2–3 個）
-每個領域寫：
-- **可以直接拿來用的做法**
-- **類比在哪裡失效**：兩邊的差異在哪，照搬會出什麼錯
+If one sentence of the request can be read in several ways, list 2 or 3 readings. For each reading, write:
 
-### 5. 補齊約束
-列出使用者容易漏掉、但會影響成品的條件，例如規模、執行環境、相容性、效能、安全與隱私、受眾、交付格式、時間與預算、成功標準。每條標明是**材料裡明確寫的**，還是**你推定的**。
+- **Name**: what this kind of problem is usually called in industry or research.
+- **Meaning**: what the finished work looks like under this reading.
+- **Signals**: which signs in the material support or rule out this reading.
 
-### 6. 重寫需求
-寫一份可以直接交給 agent 的版本：用上第 3 步的術語，帶入選定的解讀和約束，並把推定的部分標出來，方便使用者確認。
+Then choose one reading and say which signals it rests on. If the signals are too weak and a wrong choice is costly, stop and ask the user. Do not force a choice. If the request has no ambiguity, say so in one sentence and skip this step.
 
-### 7. 逐條核驗引用（輸出前必做）
-- 逐一打開每個連結，確認頁面存在，而且確實以你說的意思使用這個詞。
-- 核驗不了或對不上的引用直接刪掉。不要換成憑記憶寫的連結；這個詞沒有可靠出處時，就註明「無已驗證出處」。
-- 最終輸出不得含任何未經打開核對的連結。
+### 3. Key terms (8 to 12)
 
-## 輸出格式
-1. 讀過的材料（清單）
-2. 解讀與選擇
-3. 關鍵術語表（依影響排序）
-4. 相鄰領域借鏡
-5. 補齊的約束（明確／推定）
-6. 重寫後的需求
-7. 下一步：建議接著執行 /sharpen
+Sort the terms by how much each one changes the finished work, the largest first. For each term, give:
 
-## 不做的事
-- 不開始實作，不寫程式碼。
-- 不做技術選型實驗，也不訂驗收方案（那是 /sharpen 的工作）。
-- 不用二手摘要代替讀原文。
+- **Meaning**: one or two sentences.
+- **Part of the request**: which part of the request it applies to.
+- **Source**: a link to one real project, paper or official document that uses the term in this meaning.
+- **How to ask with it**: one example sentence that can go straight into a prompt, to show how to instruct an agent once you know the term.
+
+### 4. Lessons from nearby fields (2 or 3)
+
+For each field, write:
+
+- **What you can use directly**: a practice that carries over as it is.
+- **Where the analogy fails**: how the two fields differ, and what goes wrong if you copy the practice without change.
+
+### 5. Fill in missing constraints
+
+List the conditions that the user can easily leave out but that change the finished work. Examples: scale, runtime environment, compatibility, performance, security and privacy, audience, delivery format, time and budget, and what counts as success. Mark each one as **stated** (written in the material) or **inferred** (your guess).
+
+### 6. Rewrite the request
+
+Write a version that can go straight to an agent. Use the terms from step 3, and include the chosen reading and the constraints. Mark the inferred parts, so that the user can confirm them.
+
+### 7. Check every source (required before you send)
+
+- Open each link. Make sure that the page exists and uses the term in the meaning you gave.
+- Delete each source that you cannot check or that does not match. Do not replace it with a link from memory. If a term has no reliable source, write "no checked source".
+- The final message must not contain any link that you did not open and check.
+
+## Message format
+
+Use these parts, in this order, with short headings:
+
+1. **Material read**: a list.
+2. **Readings and choice**.
+3. **Key terms**: a table, sorted by impact.
+4. **Lessons from nearby fields**.
+5. **Constraints**: each marked stated or inferred.
+6. **Rewritten request**.
+7. **Next step**: suggest running /sharpen next.
+
+## Do not
+
+- Do not start building, and do not write code.
+- Do not run experiments to choose a technology, and do not set acceptance checks. That is the work of /sharpen.
+- Do not use a second-hand summary in place of the original text.

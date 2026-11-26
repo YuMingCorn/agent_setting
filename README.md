@@ -75,7 +75,7 @@ The Codex and Antigravity CLI versions differ in these ways:
 | `/session-review` | Claude Code only | Reviews recent sessions and proposes skills, scripts or rules. |
 | `/brain` | Claude Code only | Plans a big job with Fable and hands the parts to the agents. |
 
-How to call a skill: type `/name` in Claude Code and Antigravity CLI, and `$name` in Codex. `/restate`, `/first-principle` and `/wrap-up` may also start on their own when your words match their description. The other skills run only when you call them by name.
+How to call a skill: type `/name` in Claude Code and Antigravity CLI, and `$name` in Codex. Every skill runs only when you call it by name. Claude Code enforces this with `disable-model-invocation: true`, and Codex with the generated `agents/openai.yaml`. Antigravity CLI has no such setting, so there the description only asks the model not to start the skill on its own.
 
 ### `/reframe`
 
@@ -83,7 +83,7 @@ How to call a skill: type `/name` in Claude Code and Antigravity CLI, and `$name
 /reframe [the request to clarify]
 ```
 
-Gets the problem right, and stated right, before any work starts. It reads the source material, picks a reading of the request, and collects 8 to 12 key terms (each with a checked source), ideas from nearby fields and missing constraints. It ends with a rewritten request for an agent, and builds nothing. The skill text is in Traditional Chinese.
+Gets the problem right, and stated right, before any work starts. It reads the source material, picks a reading of the request, and collects 8 to 12 key terms (each with a checked source), ideas from nearby fields and missing constraints. It ends with a rewritten request for an agent, and builds nothing.
 
 ### `/sharpen`
 
@@ -91,7 +91,7 @@ Gets the problem right, and stated right, before any work starts. It reads the s
 /sharpen [the request to deepen, usually the output of /reframe]
 ```
 
-Raises the method to the level of the best people in the field. It tests technical choices with a small experiment before it recommends one, and leaves product trade-offs to you. It accepts only outside evidence, such as tests or benchmarks, and ends with a prompt that an agent can run. Suggested order: `/reframe`, then `/sharpen`, then build. The skill text is in Traditional Chinese.
+Raises the method to the level of the best people in the field. It tests technical choices with a small experiment before it recommends one, and leaves product trade-offs to you. It accepts only outside evidence, such as tests or benchmarks, and ends with a prompt that an agent can run. Suggested order: `/reframe`, then `/sharpen`, then build.
 
 ### `/restate`
 

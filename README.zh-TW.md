@@ -75,7 +75,7 @@ Codex 和 Antigravity CLI 版本有以下差異：
 | `/session-review` | 只限 Claude Code | 回顧最近的 session，建議新的 skill、腳本或規則。 |
 | `/brain` | 只限 Claude Code | 用 Fable 規劃大型工作，再分派給 agent。 |
 
-呼叫方式：Claude Code 和 Antigravity CLI 輸入 `/名稱`，Codex 輸入 `$名稱`。`/restate`、`/first-principle` 和 `/wrap-up` 也會在你的說法符合描述時自動啟動；其他 skill 只在你明確呼叫時執行。
+呼叫方式：Claude Code 和 Antigravity CLI 輸入 `/名稱`，Codex 輸入 `$名稱`。所有 skill 都只在你明確呼叫時執行。Claude Code 靠 `disable-model-invocation: true` 強制做到，Codex 靠自動產生的 `agents/openai.yaml`。Antigravity CLI 沒有這種設定，只能靠描述要求模型不要自行啟動。
 
 ### `/reframe`
 

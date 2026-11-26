@@ -1,7 +1,8 @@
 ---
 name: first-principle
-description: Solves a problem by first-principles thinking. Takes the problem apart down to its basic axioms (facts that cannot be reduced further), then reasons up from those axioms alone to build the solution, instead of copying how it is usually done. Use when the user types /first-principle, or says "第一原理", "第一性原理", "從根本想", "拆到最基本", "first principles" or "reason from first principles".
+description: Solves a problem by first-principles thinking. Takes the problem apart down to its basic axioms (facts that cannot be reduced further), then reasons up from those axioms alone to build the solution, instead of copying how it is usually done. Use only when the user types /first-principle.
 argument-hint: "[the problem to think through; default: the user's latest request]"
+disable-model-invocation: true
 ---
 
 # First principle

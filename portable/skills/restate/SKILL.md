@@ -1,6 +1,6 @@
 ---
 name: restate
-description: "Before any work starts, restates in the agent's own words what the user's goal is, what problem they are trying to solve, and what is still unclear, then stops and waits for the user's reply. Use when the user types /restate, or says \"先別動手\", \"用你自己的話說\", \"你認為我的目標是什麼\", \"restate in your own words\" or \"what do you think my goal is\"."
+description: "Before any work starts, restates in the agent's own words what the user's goal is, what problem they are trying to solve, and what is still unclear, then stops and waits for the user's reply. Use only when the user types /restate."
 ---
 
 # Restate

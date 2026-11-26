@@ -1,50 +1,63 @@
 ---
 name: sharpen
-description: "僅在使用者輸入 /sharpen 時使用：參照頂尖從業者的標準，把任務做法、一手材料、方法與外部驗收證據做深，並重寫提示詞。通常在 /reframe 之後。"
+description: "Raises how a task is done to the standard of the best people in its field. Finds the primary sources, picks the method, tests technical choices with small experiments, leaves product trade-offs to the user, sets acceptance checks that rest on outside evidence, and rewrites the prompt. Use only when the user types /sharpen. Usually runs after /reframe."
 ---
 
-# /sharpen：把做法與驗收做深
+# Sharpen
 
-目標：問題已經定義清楚後（通常是 /reframe 的產出），把**任務要求**拉到這個領域頂尖從業者的水準，交付一份更深的提示詞，裡面有明確的做法和驗收標準。
+Once the problem is clearly defined, usually by /reframe, raise the task to the level of the best people in the field. Deliver a deeper prompt with a clear method and clear acceptance checks.
 
-如果問題本身還有歧義或用詞不清，先建議使用者執行 /reframe。
+If the problem still has ambiguous readings or unclear terms, suggest that the user run /reframe first.
 
-## 步驟
+The request is the argument. Without one, use the latest /reframe output in this conversation, or else the user's latest request. Talk to the user in the language they use.
 
-### 1. 讀一手材料
-直接打開原始檔案、程式碼和需求原文（若有 /reframe 的產出也一併讀），不憑摘要判斷。
+## Steps
 
-### 2. 頂尖從業者會多做哪幾步
-對照「一般做法」和「頂尖做法」，列出差距。每一步寫清楚它防止什麼失敗、提升了什麼品質。
+### 1. Read the source material
 
-### 3. 從哪些一手材料出發
-指出應該依據的 primary sources，例如規格書、標準、原始數據、原始碼、論文、官方文件、真實使用者資料，並附連結。輸出前逐一打開核對，核驗不了的就刪掉。
+Open the original files, code and request text, and the /reframe output if there is one. Do not judge from a summary.
 
-### 4. 採用什麼方法
-說明具體的方法或流程，以及為什麼它適合這個任務。
+### 2. What the best people do in addition
 
-### 5. 決策分兩類處理
-- **A. 能靠小實驗驗證的技術選型**：先做最小原型或實驗，實際觀察結果，再給建議。寫明試了什麼、怎麼測、結果如何、所以建議什麼。不要不經實驗就下結論。
-- **B. 無法靠實驗定奪的產品取捨或個人偏好**：列出選項、各自的取捨和適用情境，**留給使用者決定**，不替他選。
+Compare the usual way with the way the best people in the field work, and list the gaps. For each extra step, say which failure it prevents or which quality it raises.
 
-每項決策都要標明屬於 A 還是 B。
+### 3. Primary sources to start from
 
-### 6. 靠什麼外部證據驗收
-為成品定義驗收方式，證據必須來自外部，不能是自評。例如自動化測試、基準測試、與參考資料或既有系統對照、第三方工具檢查、真實使用者行為。每條驗收寫清楚通過標準。
+Name the primary sources that the work must rest on, with links. Examples: specifications, standards, raw data, source code, papers, official documentation and real user data. Before you send the message, open each link and check it. Delete each one that you cannot check.
 
-### 7. 重寫提示詞
-整合以上內容，寫成可以直接交給 agent 執行的提示詞，涵蓋目標、一手材料、方法、步驟、已定的 A 類決策、待使用者決定的 B 類決策，以及驗收標準。
+### 4. Method
 
-## 輸出格式
-1. 讀過的材料
-2. 頂尖做法 vs 一般做法
-3. 一手材料清單（已核驗）
-4. 方法
-5. 決策：A 類（實驗與結果、建議）／B 類（選項，待使用者決定）
-6. 驗收標準（外部證據與通過條件）
-7. 重寫後的提示詞
+Describe the specific method or process, and say why it fits this task.
 
-## 不做的事
-- 不替使用者做 B 類取捨。
-- 不拿「看起來沒問題」當驗收。
-- 不保留未核驗的引用。
+### 5. Sort the decisions into two kinds
+
+- **A. Technical choices that a small experiment can settle.** First build the smallest prototype or run an experiment, and look at the real result. Then recommend. Write what you tried, how you measured it, what the result was, and what you recommend because of it. Do not decide without an experiment.
+- **B. Product trade-offs or personal preferences that no experiment can settle.** List the options, the trade-offs of each, and when each one fits. **Leave the choice to the user.** Do not choose for them.
+
+Mark each decision as A or B.
+
+### 6. Acceptance checks from outside evidence
+
+Define how the finished work is accepted. The evidence must come from outside, not from your own review. Examples: automated tests, benchmarks, comparison with reference data or an existing system, checks by third-party tools, and real user behavior. For each check, state the pass condition.
+
+### 7. Rewrite the prompt
+
+Combine the steps above into a prompt that an agent can run as it is. It covers the goal, the primary sources, the method, the steps, the A decisions already made, the B decisions that wait for the user, and the acceptance checks.
+
+## Message format
+
+Use these parts, in this order, with short headings:
+
+1. **Material read**.
+2. **Best practice versus the usual way**.
+3. **Primary sources**: checked.
+4. **Method**.
+5. **Decisions**: A (experiment, result and recommendation) and B (options that wait for the user).
+6. **Acceptance checks**: the outside evidence and the pass condition of each.
+7. **Rewritten prompt**.
+
+## Do not
+
+- Do not make B decisions for the user.
+- Do not accept work because it "looks fine".
+- Do not keep a source that you did not check.
