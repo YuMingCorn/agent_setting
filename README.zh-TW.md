@@ -123,7 +123,7 @@ Codex 和 Antigravity CLI 版本有以下差異：
 /session-review [天數，預設 30] [專案名稱篩選]
 ```
 
-讀 `~/.claude/projects/` 裡的對話紀錄，找出你想被告知的事、不必問你的問題，以及可以做成 skill、腳本或規則的重複要求。它只提建議，你選了才動手。腳本用 `uv run --no-project python` 執行。
+讀 `~/.claude/projects/` 裡的對話紀錄，找出你想被告知的事、不必問你的問題，以及目前專案裡可以做成 skill、腳本或規則的事。它會先讀過去的複盤和你現有的規則，所以不會重提你拒絕過的建議，也不會重複已有的規則。它只列出編號的建議，你選了才動手。腳本用 `uv run --no-project python` 執行。
 
 ### `/brain`（只限 Claude Code）
 

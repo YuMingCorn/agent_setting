@@ -10,12 +10,21 @@ UTF-8 files to the output folder:
                 recommended option.
   part0.txt ... messages.txt split at session borders into parts of about
                 150,000 characters, for reading in parallel.
+  focus.txt     with --focus: the messages of that one project only.
+  prior_reviews.md  earlier review runs (a user message that starts with
+                /session-review or matches --review-marker): the report that
+                followed and the user's next messages, which show what the
+                user chose to build.
+
+A short user reply after a plain-text question (not AskUserQuestion) is
+preceded by a [TEXT-ASK] line with the end of the assistant's text, so that
+numbered replies such as "1. ok 2. delete" can be read in context.
 
 The output holds private conversation text. Keep it outside any git repo.
 
 Usage:
   uv run --no-project python -I session_review.py --out <folder> [--days 30]
-      [--project <substring>]
+      [--project <substring>] [--focus <project folder path>]
 """
 
 import argparse
@@ -35,6 +44,8 @@ NOISE_PREFIXES = (
 )
 REC_MARK = re.compile(r"\(Recommended\)|（建議）|（推薦）|\(推薦\)|\(建議\)|\(recommended\)")
 CHUNK_CHARS = 150_000
+SHORT_REPLY = 40            # a reply this short after a text question gets [TEXT-ASK]
+TEXT_ASK = re.compile(r"[?？]|要不要|需要你決定|你決定|which|should I", re.I)
 
 
 def parse_args():
@@ -42,6 +53,9 @@ def parse_args():
     p.add_argument("--out", required=True, help="output folder, outside any git repo")
     p.add_argument("--days", type=int, default=30, help="look back this many days (default 30)")
     p.add_argument("--project", default="", help="only transcript folders whose name contains this text")
+    p.add_argument("--focus", default="", help="path of the project to focus on, usually the working directory")
+    p.add_argument("--review-marker", default=r"^/session-review|複盤",
+                   help="regex for user messages that start a review (default: /session-review or 複盤)")
     return p.parse_args()
 
 
@@ -60,6 +74,10 @@ def clean_user_text(content):
     else:
         return ""
     text = re.sub(r"<system-reminder>.*?</system-reminder>", "", text, flags=re.S).strip()
+    # A machine-written summary of an earlier conversation can start with a tag and a
+    # note, so look for its opening sentence near the start, not only at the start.
+    if "This session is being continued from a previous conversation" in text[:600]:
+        return ""
     m = re.search(r"<command-name>(.*?)</command-name>.*?<command-args>(.*?)</command-args>", text, re.S)
     if m:
         text = "/" + m.group(1).strip().lstrip("/") + " " + m.group(2).strip()
@@ -83,6 +101,16 @@ def parse_answers(result_text, questions):
     return answers
 
 
+def project_folder(path):
+    """Claude Code names a transcript folder after the project path, with every
+    character that is not a letter or digit replaced by '-'."""
+    return re.sub(r"[^A-Za-z0-9]", "-", os.path.abspath(path)) if path else ""
+
+
+def assistant_text(content):
+    return "".join(b.get("text", "") for b in content if isinstance(b, dict) and b.get("type") == "text")
+
+
 def main():
     args = parse_args()
     root = os.path.join(os.path.expanduser("~"), ".claude", "projects")
@@ -91,8 +119,9 @@ def main():
         f for f in glob.glob(os.path.join(root, "*", "*.jsonl"))
         if os.path.getmtime(f) >= cutoff
         and args.project.lower() in os.path.basename(os.path.dirname(f)).lower()
-        # Sessions started inside temporary folders are test runs, not real work.
-        and "-temp" not in os.path.basename(os.path.dirname(f)).lower()
+        # Sessions started inside the system temp folder are test runs, not real work.
+        # (Match the whole path part: a plain "-temp" would also drop "my-templates".)
+        and "-appdata-local-temp" not in os.path.basename(os.path.dirname(f)).lower()
     ]
     files.sort(key=os.path.getmtime)
 
@@ -104,11 +133,20 @@ def main():
     q_total = q_with_rec = q_took_rec = q_blank = 0
     not_rec = []
     n_msgs = 0
+    n_text_asks = 0
+    focus = project_folder(args.focus).lower()
+    focus_lines = []
+    fq_with_rec = fq_took_rec = 0
+    marker = re.compile(args.review_marker)
+    reviews = []               # [project, session, ts, request, report, [next user msgs]]
 
     for path in files:
         project = os.path.basename(os.path.dirname(path))
         asks = {}
         lines = []
+        last_text = ""         # the assistant's latest plain text in this session
+        is_focus = bool(focus) and project.lower() == focus
+        review = None
         with open(path, encoding="utf-8", errors="ignore") as fh:
             for raw in fh:
                 try:
@@ -137,9 +175,11 @@ def main():
                                     if not recs:
                                         continue
                                     q_with_rec += 1
+                                    fq_with_rec += is_focus
                                     picked = [REC_MARK.sub("", a).strip() for a in ans.split(", ")]
                                     if any(r in picked for r in recs):
                                         q_took_rec += 1
+                                        fq_took_rec += is_focus
                                     else:
                                         not_rec.append((project, q.get("question", "")[:160], recs[0][:60], ans[:200]))
                     uid = d.get("uuid")
@@ -152,8 +192,24 @@ def main():
                     per_project[project] += 1
                     if len(text) <= 12:
                         short_replies[text] += 1
+                    if last_text and len(text) <= SHORT_REPLY and TEXT_ASK.search(last_text[-300:]):
+                        n_text_asks += 1
+                        tail = " ".join(last_text[-400:].split())
+                        lines.append(f"  [TEXT-ASK] ...{tail}")
+                    last_text = ""
                     lines.append(f"[{ts}] USER: {text[:1200]}")
+                    if review is not None and len(review[5]) < 3:
+                        review[5].append(f"[{ts}] {text[:600]}")
+                    if marker.search(text):
+                        review = [project, os.path.basename(path)[:8], ts, text[:300], "", []]
+                        reviews.append(review)
                 elif d.get("type") == "assistant" and isinstance(content, list):
+                    t = assistant_text(content).strip()
+                    if t:
+                        last_text = t
+                        # The report is the longest assistant text before the user's next message.
+                        if review is not None and not review[5] and len(t) > len(review[4]):
+                            review[4] = t
                     for b in content:
                         if b.get("type") == "tool_use" and b.get("name") == "AskUserQuestion":
                             if b["id"] in seen_asks:
@@ -167,6 +223,9 @@ def main():
         if any("USER:" in ln for ln in lines):
             out_lines.append(f"\n===== {project} / {os.path.basename(path)[:8]} =====")
             out_lines.extend(lines)
+            if is_focus:
+                focus_lines.append(f"\n===== {project} / {os.path.basename(path)[:8]} =====")
+                focus_lines.extend(lines)
 
     os.makedirs(args.out, exist_ok=True)
     text = "\n".join(out_lines)
@@ -187,20 +246,41 @@ def main():
         with open(os.path.join(args.out, f"part{i}.txt"), "w", encoding="utf-8") as fh:
             fh.write("\n".join(part))
 
+    if focus:
+        with open(os.path.join(args.out, "focus.txt"), "w", encoding="utf-8") as fh:
+            fh.write("\n".join(focus_lines))
+    pr = ["# Earlier review runs, oldest first", "",
+          "The last entry may be the run in progress, with no report yet.", ""]
+    for p, sid, ts, req, report, nxt in reviews:
+        pr += [f"## [{ts}] {p} / {sid}", "", f"Request: {req}", "", "### Report", "",
+               report[:6000] or "(none)", "", "### The user's next messages", ""]
+        pr += [f"- {m}" for m in nxt] or ["- (none)"]
+        pr.append("")
+    with open(os.path.join(args.out, "prior_reviews.md"), "w", encoding="utf-8") as fh:
+        fh.write("\n".join(pr) + "\n")
+
     rate = f"{100 * q_took_rec / q_with_rec:.0f}%" if q_with_rec else "n/a"
+    n_sessions = sum(1 for ln in out_lines if ln.startswith(chr(10) + '====='))
     st = [
         f"# Session review, last {args.days} days",
         "",
-        f"- Sessions with user messages: {sum(1 for ln in out_lines if ln.startswith(chr(10) + '====='))}",
+        f"- Transcript files read: {len(files)}; sessions with user messages: {n_sessions} (use this one)",
         f"- User messages (noise removed): {n_msgs}",
-        f"- Questions asked: {q_total} (no answer parsed: {q_blank})",
+        f"- Questions asked with AskUserQuestion: {q_total} (no answer parsed: {q_blank})",
         f"- Questions with a recommended option: {q_with_rec}; the user took it: {q_took_rec} ({rate})",
+        f"- Short replies after a plain-text question ([TEXT-ASK]): {n_text_asks}",
+        f"- Earlier review runs found: {len(reviews)}",
         f"- Parts written for reading: {len(parts)}",
         "",
         "## User messages per project",
         "",
     ]
     st += [f"- {p}: {n}" for p, n in per_project.most_common()]
+    if focus:
+        frate = f"{100 * fq_took_rec / fq_with_rec:.0f}%" if fq_with_rec else "n/a"
+        st += ["", f"## Focus project: {project_folder(args.focus)}", "",
+               f"- User messages: {sum(n for p, n in per_project.items() if p.lower() == focus)}",
+               f"- Questions with a recommended option: {fq_with_rec}; the user took it: {fq_took_rec} ({frate})"]
     st += ["", "## Most repeated short replies", ""]
     st += [f"- {r!r}: {n}" for r, n in short_replies.most_common(25)]
     st += ["", "## Answers that did not take the recommended option", ""]
@@ -209,8 +289,9 @@ def main():
         fh.write("\n".join(st) + "\n")
 
     # ASCII-only console output: the Windows console may not be UTF-8.
-    print(f"sessions={len(files)} messages={n_msgs} questions={q_total} "
-          f"with_rec={q_with_rec} took_rec={q_took_rec} ({rate}) parts={len(parts)}")
+    print(f"sessions={n_sessions} messages={n_msgs} questions={q_total} "
+          f"with_rec={q_with_rec} took_rec={q_took_rec} ({rate}) text_asks={n_text_asks} "
+          f"reviews={len(reviews)} parts={len(parts)}")
     print(f"wrote {os.path.abspath(args.out)}")
 
 

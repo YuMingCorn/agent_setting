@@ -123,7 +123,7 @@ Ends a session: unchecked changes go to `sonnet-checker` first, then it commits 
 /session-review [days, default 30] [project name filter]
 ```
 
-Reads the transcripts in `~/.claude/projects/` to find what you want to be told, which questions you did not need to be asked, and which repeated requests could become a skill, script or rule. It only proposes, and builds nothing until you pick. Run its script with `uv run --no-project python`.
+Reads the transcripts in `~/.claude/projects/` to find what you want to be told, which questions you did not need to be asked, and what in the current project could become a skill, script or rule. It reads earlier reviews and your existing rules first, so it does not propose again what you declined or what a rule already covers. It only proposes numbered changes, and builds nothing until you pick. Run its script with `uv run --no-project python`.
 
 ### `/brain` (Claude Code only)
 
