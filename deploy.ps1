@@ -1,5 +1,5 @@
 # Copy settings from this repo into your home folder (the reverse of backup.ps1).
-# - Default: Claude Code only (agents and skills -> ~/.claude).
+# - Default: Claude Code only (agents, skills and tools -> ~/.claude).
 # - -All: also the generated files in .\portable\ (run build.ps1 first):
 #     portable\skills              -> ~/.agents/skills   (read by Codex and Antigravity CLI)
 #     portable\codex\agents        -> ~/.codex/agents
@@ -15,12 +15,13 @@ param([switch]$All, [switch]$DryRun)
 $ErrorActionPreference = 'Stop'
 $repo = $PSScriptRoot
 $home_ = $env:USERPROFILE
-$exclude = @('synced')   # never touch the auto-synced Anthropic skills
+$exclude = @('synced', '__pycache__')   # never touch the auto-synced Anthropic skills; skip Python caches
 
 # label, source in repo, target in home
 $targets = @(
     @('claude-agents', 'agents', '.claude\agents'),
-    @('claude-skills', 'skills', '.claude\skills')
+    @('claude-skills', 'skills', '.claude\skills'),
+    @('claude-tools', 'tools', '.claude\tools')
 )
 if ($All) {
     $targets += ,@('agents-skills', 'portable\skills', '.agents\skills')

@@ -1,2 +1,3 @@
 # claude.ai 自動同步的官方 skill，不是自己寫的
 skills/synced/
+__pycache__/

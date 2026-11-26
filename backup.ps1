@@ -11,6 +11,7 @@ $repo = $PSScriptRoot
 $items = [ordered]@{
     'agents' = @()
     'skills' = @('synced')   # synced = Anthropic skills auto-synced from claude.ai
+    'tools'  = @('__pycache__')
 }
 
 foreach ($name in $items.Keys) {

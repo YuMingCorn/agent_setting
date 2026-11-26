@@ -14,6 +14,10 @@ $out  = Join-Path $repo 'portable'
 # session-review stays Claude-only: it reads Claude Code session transcripts.
 $portableSkills = @('wrap-up', 'restate', 'first-principle', 'reframe', 'sharpen')
 
+# Agents that stay Claude-only. agy-runner hands work to agy, so an agy or
+# Codex copy makes no sense; it also needs tools\agy_run.py under ~/.claude.
+$claudeOnlyAgents = @('agy-runner')
+
 # Claude Code tool name -> Antigravity CLI (agy) tool names.
 # Checked against agy on 2026-11-26: a custom agent does not get grep_search,
 # find_by_name, list_dir or read_url_content even when it lists them, and an
@@ -83,6 +87,7 @@ foreach ($f in $agentFiles) {
     $doc  = Read-Doc $f.FullName
     $name = $doc.fm['name']; $desc = $doc.fm['description']
     if (-not $name -or -not $desc) { throw "$($f.Name) needs name and description" }
+    if ($claudeOnlyAgents -contains $name) { Write-Host "Skipped Claude-only agent $name"; continue }
     if ($doc.body.Contains("'''")) { throw "$($f.Name) body contains ''' and cannot go into a TOML literal string" }
 
     # Antigravity CLI: Markdown + YAML. subagent true and mainAgent false keep it

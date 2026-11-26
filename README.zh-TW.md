@@ -28,7 +28,7 @@ cp portable/codex/agents/* ~/.codex/agents/
 
 | 工具 | 複製 | 到 |
 |---|---|---|
-| Claude Code | `agents/*`、`skills/*` | `~/.claude/agents/`、`~/.claude/skills/` |
+| Claude Code | `agents/*`、`skills/*`、`tools/*` | `~/.claude/agents/`、`~/.claude/skills/`、`~/.claude/tools/` |
 | Codex | `portable/skills/*`、`portable/codex/agents/*` | `~/.agents/skills/`、`~/.codex/agents/` |
 | Antigravity CLI | `portable/skills/*`、`portable/antigravity/agents/*` | `~/.agents/skills/`（或 `~/.gemini/config/skills/`）、`~/.gemini/config/agents/` |
 
@@ -36,9 +36,10 @@ cp portable/codex/agents/* ~/.codex/agents/
 
 | 路徑 | 內容 |
 |---|---|
-| `agents/` | 7 個 subagent，Claude Code 格式。**修改來源。** |
+| `agents/` | 8 個 subagent，Claude Code 格式。**修改來源。** |
 | `skills/` | 7 個 skill，Claude Code 格式。**修改來源。** |
-| `portable/` | `build.ps1` 產生的 Codex、Antigravity CLI agent，以及 [Agent Skills](https://agentskills.io/specification) 格式的 5 個 skill。不要手動修改。 |
+| `tools/` | agent 呼叫的腳本，例如 `agy_run.py`。部署到 `~/.claude/tools/`。 |
+| `portable/` | `build.ps1` 產生的 Codex、Antigravity CLI agent（`agy-runner` 除外），以及 [Agent Skills](https://agentskills.io/specification) 格式的 5 個 skill。不要手動修改。 |
 | `build.ps1` | 從 `agents/` 和 `skills/` 產生 `portable/`。 |
 | `deploy.ps1` | 把檔案複製到使用者資料夾。 |
 | `backup.ps1` | 把直接在 `~/.claude` 做的修改複製回 repo。 |
@@ -56,12 +57,23 @@ cp portable/codex/agents/* ~/.codex/agents/
 | `haiku-worker` | Haiku | 全部 | 結果容易檢查的大量重複工作，不寫程式。 |
 | `opus-builder` | Opus | 全部 | 計畫定案後照說明實作，逐檔回報修改。 |
 | `sonnet-checker` | Sonnet | Read、Grep、Glob、Bash | 完成前對照說明檢查成果，回報 `PASS` 或 `FAIL`。 |
+| `agy-runner` | Haiku | Read、Bash | 只限 Claude Code。把寫好的任務交給 Antigravity CLI（`agy`）執行，回報它改了什麼。只在你要求用 agy 時使用。 |
 
 Codex 和 Antigravity CLI 版本有以下差異：
 
 - 不指定模型，沿用主 session 的模型。
 - Antigravity CLI 的工具名稱會自動轉換，例如 `Read` 轉成 `read_file`。它的自訂 agent 拿不到搜尋工具，所以 `Grep` 和 `Glob` 轉成 `run_command`（用 shell 指令搜尋），`WebFetch` 轉成 `search_web`。沒有 `tools` 的 agent 會寫入完整的工具清單，因為 Antigravity 只給這種 agent 一小組唯讀工具。
 - Codex 不能限制工具，所以「唯讀」和「只查本機或只查網路」只靠說明約束。Antigravity CLI 的搜尋 agent 需要 `run_command`，所以「唯讀」也只靠說明約束。
+
+### `agy-runner`（只限 Claude Code）
+
+主 agent 先把任務寫成檔案，`agy-runner` 再執行 `tools/agy_run.py`。腳本依任務類型（`read`、`rewrite`、`simple`）選模型，跳過你說額度已用完的組別，並透過 `agy acp` 自己回答每個權限請求：
+
+- 只能寫進 `--write` 指定的資料夾。沒有 `--write` 就是唯讀任務。
+- shell 指令必須以 `--allow-cmd` 指定的前綴開頭，而且不能有引號、管線或 `..`。
+- 結束時列出寫入範圍內和範圍外有變動的檔案。
+
+限制不到的部分（2026-11-26 用 agy 1.5.18 實測）：agy 讀檔不會詢問，`.env` 也讀得到。它也會自己放行寫進系統暫存資料夾的動作，所以腳本拒絕在暫存資料夾裡的專案。不用一般的 `agy -p`，因為這個模式下 agy 可以不經詢問寫到任何地方。
 
 ## Skills
 
@@ -144,7 +156,7 @@ Codex 和 Antigravity CLI 版本有以下差異：
    部署前會備份到 `%TEMP%\claude-deploy-backup\`。它只新增和覆蓋檔案，不刪除，也不碰 `~/.claude/skills/synced/`。
 3. commit 並推送。
 
-直接改了 `~/.claude` 的話，先執行 `backup.ps1` 再執行 `build.ps1`。`backup.ps1` 用 `robocopy /MIR` 鏡像，所以在 `~/.claude` 刪掉的檔案，repo 裡也會刪掉。
+直接改了 `~/.claude`（`agents`、`skills` 或 `tools`）的話，先執行 `backup.ps1` 再執行 `build.ps1`。`backup.ps1` 用 `robocopy /MIR` 鏡像，所以在 `~/.claude` 刪掉的檔案，repo 裡也會刪掉。
 
 ## 注意
 
