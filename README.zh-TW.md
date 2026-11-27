@@ -42,6 +42,7 @@ cp portable/codex/agents/* ~/.codex/agents/
 | `portable/` | `build.ps1` 產生的 Codex、Antigravity CLI agent（`agy-runner` 除外），以及 [Agent Skills](https://agentskills.io/specification) 格式的 5 個 skill。不要手動修改。 |
 | `build.ps1` | 從 `agents/` 和 `skills/` 產生 `portable/`。 |
 | `deploy.ps1` | 把檔案複製到使用者資料夾。 |
+| `check.ps1` | commit 前檢查 repo。 |
 | `backup.ps1` | 把直接在 `~/.claude` 做的修改複製回 repo。 |
 
 ## Agents
@@ -148,13 +149,16 @@ Codex 和 Antigravity CLI 版本有以下差異：
 ## 維護這個 repo
 
 1. 修改 `agents/` 或 `skills/`，再執行 `build.ps1` 重新產生 `portable/`。
-2. 先預覽再部署（不加 `-All` 就只部署到 Claude Code）：
+2. 執行 `check.ps1`。它檢查每個 agent 的 name 和檔名相同、每個 skill 的 name 和資料夾同名且有 `disable-model-invocation: true`、兩份 README 都列出每個 agent 和 skill 且數量正確、build 之後 `portable/` 沒有沒 commit 的變動，以及 `.ps1` 檔只用 ASCII 字元。最後回報 `PASS` 或 `FAIL`。
+3. 先預覽再部署（不加 `-All` 就只部署到 Claude Code）：
    ```powershell
    powershell -ExecutionPolicy Bypass -File .\deploy.ps1 -All -DryRun
    powershell -ExecutionPolicy Bypass -File .\deploy.ps1 -All
    ```
-   部署前會備份到 `%TEMP%\claude-deploy-backup\`。它只新增和覆蓋檔案，不刪除，也不碰 `~/.claude/skills/synced/`。
-3. commit 並推送。
+   部署前會備份到 `%TEMP%\claude-deploy-backup\`，也不碰 `~/.claude/skills/synced/`。複製前會比對家目錄和 repo：
+   - 家目錄有檔案比 repo 新時就停止，以免直接改過的內容被蓋掉。先執行 `backup.ps1`，或加 `-Force` 覆蓋。
+   - 列出舊檔：曾經在 repo 裡（git 歷史裡有）、現在已經沒有、但家目錄還留著的檔案。只有加 `-Prune` 才會刪除。repo 從來沒有的檔案一律不碰。
+4. commit 並推送。
 
 直接改了 `~/.claude`（`agents`、`skills` 或 `tools`）的話，先執行 `backup.ps1` 再執行 `build.ps1`。`backup.ps1` 用 `robocopy /MIR` 鏡像，所以在 `~/.claude` 刪掉的檔案，repo 裡也會刪掉。
 
